@@ -8,6 +8,13 @@
       "when": 1794569680551,
       "tag": "0000_initial_invitation_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795068065226,
+      "tag": "0001_admin_access",
+      "breakpoints": true
     }
   ]
 }
