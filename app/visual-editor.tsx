@@ -2,7 +2,7 @@
 
 import {useEffect,useState,type ReactNode,type FormEvent} from "react";
 import {InvitationPage} from "./invitation-page";
-import {paletteFor,palettesFor,templateName,templates,validSlug,type Invite,type SiteLanguage} from "./model";
+import {allTemplates,paletteFor,palettesFor,templateName,templates,validSlug,type Invite,type SiteLanguage} from "./model";
 
 type Props={
  data:Invite;step:number;language:SiteLanguage;photoUrl:string;orderPhoto?:string;busy:boolean;error:string;signedIn:boolean;locked?:boolean;lockedMessage?:string;accessPanel?:ReactNode;saveDraft?:(slug?:string)=>Promise<boolean>;onExit?:()=>void;
@@ -26,7 +26,7 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
  const isPreview=step===previewStep;
  const isPayment=step===paymentStep;
  const totalSteps=t.steps.length;
- const currentTemplate=templates.find(item=>item.id===data.template)??templates[0];
+ const currentTemplate=allTemplates.find(item=>item.id===data.template)??templates[0];
  const photo=photoUrl||orderPhoto||"/images/demo-couple.webp";
  function edit(target:"cover"|"message"|"photo"|"location"|"program"){
   if(locked||busy)return;
@@ -94,7 +94,7 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
    {!locked&&<button disabled={busy} type="button" className="button secondary" onClick={()=>move(paymentStep)}>{t.pay}</button>}
   </section>}
   <div className="visual-editor-canvas"><InvitationPage data={data} photo={isPreview||isPayment?photoUrl||orderPhoto:photo} editor={locked||step>=linkStep?undefined:{onEdit:edit,update,setSectionHidden,controls:sectionControls}}/></div>
-  {step===0&&<div className="language-choice-backdrop"><section className="language-choice-card"><span className="choice-mark">KHUSHBAKHT</span><h1>{t.chooseLanguage}</h1><p>{t.chooseLanguageText}</p><div className="language-choice-grid">
+  {step===0&&<div className="language-choice-backdrop"><section className="language-choice-card"><span className="choice-mark">BAZMNOMA</span><h1>{t.chooseLanguage}</h1><p>{t.chooseLanguageText}</p><div className="language-choice-grid">
    {([['tj','Тоҷикӣ','Тоҷикӣ'],['ru','Русский','Русский'],['uz','Ўзбекча','Ўзбекча']] as const).map(([value,title,sample])=><button type="button" key={value} aria-pressed={data.locale===value} onClick={()=>update("locale",value)}><span>{value.toUpperCase()}</span><strong>{title}</strong><small>{sample}</small></button>)}
   </div><button type="button" className="button secondary editor-skip" onClick={skip}>{skipLabel}</button></section></div>}
   {(step===linkStep||isPayment)&&<section className="editor-in-place editor-checkout" data-editor-section="checkout">

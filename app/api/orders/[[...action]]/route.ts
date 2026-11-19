@@ -2,7 +2,7 @@ import {and,desc,eq} from "drizzle-orm";
 import {getDb} from "@/db";
 import {orders} from "@/db/schema";
 import {getChatGPTUser} from "@/app/chatgpt-auth";
-import {invitationTextOverrides,optionalSections,palettesFor,templates,validSlug,type Invite,type Status} from "@/app/model";
+import {allTemplates,invitationTextOverrides,optionalSections,palettesFor,validSlug,type Invite,type Status} from "@/app/model";
 import {bucket,published,serialize} from "@/app/store";
 type Context={params:Promise<{action?:string[]}>};
 const limit=5*1024*1024;
@@ -21,7 +21,7 @@ function parse(raw:unknown,submit:boolean):Invite|null{
   if(typeof value!=="string"||value.length>max)return null;
  }
  const data=Object.fromEntries(Object.keys(maxima).map(key=>[key,(values[key] as string).trim()])) as Invite;
- if(!data.first||!data.second||((submit||data.slug)&&!validSlug(data.slug))||!templates.some(t=>t.id===data.template)||!["ru","tj","uz"].includes(data.locale)||!["wedding","morning","both"].includes(data.eventType))return null;
+ if(!data.first||!data.second||((submit||data.slug)&&!validSlug(data.slug))||!allTemplates.some(t=>t.id===data.template)||!["ru","tj","uz"].includes(data.locale)||!["wedding","morning","both"].includes(data.eventType))return null;
  const needsWedding=data.eventType!=="morning",needsMorning=data.eventType!=="wedding";
  const validDate=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(+new Date(value+"T00:00:00Z"));
  const validTime=(value:string)=>/^([01]\d|2[0-3]):[0-5]\d$/.test(value);

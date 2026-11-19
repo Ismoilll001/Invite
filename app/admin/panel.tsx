@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {InvitationPage} from "../invitation-page";
-import {templateName,templates,type Order} from "../model";
+import {allTemplates,templateName,templates,type Order} from "../model";
 
 type AdminOrder=Order&{revision:string;updated:number;price:number};
 type Listing={orders:AdminOrder[];nextCursor:string|null};
@@ -62,17 +62,17 @@ export function AdminPanel(){
   try{await navigator.clipboard.writeText(link);setNotice("Ссылка для гостей скопирована.");}catch{setNotice("Ссылка для гостей: "+link);}
  }
  if(checking)return <main className="admin-shell"><p role="status">Проверяем вход…</p></main>;
- if(!authenticated)return <main className="admin-shell"><section className="admin-login"><a href="/" className="admin-brand">KHUSHBAKHT</a><h1>Вход администратора</h1><p>Введите пароль, сохранённый в Cloudflare.</p>
+ if(!authenticated)return <main className="admin-shell"><section className="admin-login"><a href="/" className="admin-brand">BAZMNOMA</a><h1>Вход администратора</h1><p>Введите пароль, сохранённый в Cloudflare.</p>
   <form onSubmit={login}><label>Пароль<input type="password" autoComplete="current-password" name="password" required maxLength={512} value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="button" disabled={busy}>{busy?"Входим…":"Войти"}</button></form>
   {error&&<p className="alert" role="alert">{error}</p>}
  </section></main>;
  if(preview)return <main className="admin-preview"><div className="admin-preview-toolbar"><button className="button secondary" onClick={()=>setPreview(null)}>К списку заказов</button><strong>Предпросмотр заказа · {labels[preview.status]}</strong>{preview.receipt&&<a className="button secondary" href={`/api/admin/${preview.id}/receipt`} target="_blank" rel="noreferrer">Открыть чек</a>}</div><InvitationPage data={preview.data} photo={preview.photo?`/api/admin/${preview.id}/photo`:undefined}/></main>;
- return <main className="admin-shell"><div className="admin-header"><div><a className="admin-brand" href="/">KHUSHBAKHT</a><h1>Управление заказами</h1></div><button className="button secondary" disabled={busy} onClick={logout}>Выйти</button></div>
+ return <main className="admin-shell"><div className="admin-header"><div><a className="admin-brand" href="/">BAZMNOMA</a><h1>Управление заказами</h1></div><button className="button secondary" disabled={busy} onClick={logout}>Выйти</button></div>
   <div className="admin-filters"><label>Статус<select value={filter} disabled={busy} onChange={e=>{setFilter(e.target.value);setReturning(null);setNotice("");}}>{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><button className="button secondary" disabled={busy||loading} onClick={()=>load()}>Обновить</button></div>
   {notice&&<p className="notice admin-notice" role="status">{notice}</p>}{error&&<p className="alert" role="alert">{error}</p>}
   {!items.length&&<p role="status">{loading?"Загружаем заказы…":"Заказов с этим статусом пока нет."}</p>}
   <div className="admin-orders">{items.map(item=>{
-   const template=templates.find(value=>value.id===item.data.template)??templates[0];
+   const template=allTemplates.find(value=>value.id===item.data.template)??templates[0];
    return <article className="admin-order" key={item.id}><div className="admin-order-heading"><div><span className={`status ${item.status}`}>{labels[item.status]}</span><h2>{item.data.first} и {item.data.second}</h2><p>{templateName(template,"ru")} · {item.price} сомони</p><p>{item.data.eventType==="morning"?item.data.morningDate:item.data.date} · {item.data.eventType==="morning"?item.data.morningVenue:item.data.venue}</p></div><small>Обновлён {new Date(item.updated).toLocaleString("ru-RU",{timeZone:"Asia/Dushanbe"})}</small></div>
     {item.note&&<p className="notice">{item.note}</p>}
     <div className="admin-actions"><button className="button secondary" onClick={()=>setPreview(item)}>Посмотреть приглашение</button>{item.receipt&&<a className="button secondary" href={`/api/admin/${item.id}/receipt`} target="_blank" rel="noreferrer">Открыть чек</a>}

@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {createEditToken} from "./link-access";
+import {SiteAtmosphere} from "./site-atmosphere";
 import {TemplateCatalog} from "./template-catalog";
 import {VisualEditor} from "./visual-editor";
 import {empty,paletteFor,palettesFor,templateName,templates,validSlug,type Invite,type Order,type SiteLanguage} from "./model";
@@ -186,18 +187,18 @@ export function Studio({catalogOnly=false}:{signedIn:boolean;catalogOnly?:boolea
   <button type="button" className="button secondary" onClick={()=>copyLink(accessToken)}>{language==="tj"?"Нусхабардорӣ":"Скопировать ссылку"}</button>
   {notice&&<p role="status">{notice}</p>}
  </div>:null;
- const header=<header><div className="shell navbar"><a className="brand khush-brand" href="/">KHUSHBAKHT<small>{language==="tj"?"ДАЪВАТНОМАҲОИ ОНЛАЙН":"ОНЛАЙН-ПРИГЛАШЕНИЯ"}</small></a><nav aria-label="Main"><a href={`/templates?lang=${language}`}>{t.templates}</a><button onClick={()=>go("orders")}>{t.my}</button></nav><div className="header-actions"><div className="language-switch"><button aria-pressed={language==="tj"} onClick={()=>changeLanguage("tj")}>Тоҷ</button><button aria-pressed={language==="ru"} onClick={()=>changeLanguage("ru")}>Рус</button></div><a className="button top-cta" href={`/templates?lang=${language}`}>{t.create} ↗</a></div></div></header>;
+ const header=<header><div className="shell navbar"><a className="brand khush-brand" href="/">BAZMNOMA<small>{language==="tj"?"ДАЪВАТНОМАҲОИ ОНЛАЙН":"ОНЛАЙН-ПРИГЛАШЕНИЯ"}</small></a><nav aria-label="Main"><a href={`/templates?lang=${language}`}>{t.templates}</a><button onClick={()=>go("orders")}>{t.my}</button></nav><div className="header-actions"><div className="language-switch"><button aria-pressed={language==="tj"} onClick={()=>changeLanguage("tj")}>Тоҷ</button><button aria-pressed={language==="ru"} onClick={()=>changeLanguage("ru")}>Рус</button></div><a className="button top-cta" href={`/templates?lang=${language}`}>{t.create} ↗</a></div></div></header>;
 
- return <>{tab!=="edit"&&header}<main className={tab==="edit"?"visual-editor-main":undefined}>
+ return <>{tab!=="edit"&&<SiteAtmosphere/>}{tab!=="edit"&&header}<main className={tab==="edit"?"visual-editor-main":undefined}>
   {tab==="home"&&<>
    <section className="shell hero khush-hero">
     <div className="hero-atmosphere" aria-hidden="true">
      <span className="ambient-veil"/><span className="ambient-blob ambient-rose"/><span className="ambient-blob ambient-gold"/><span className="ambient-blob ambient-lilac"/><span className="ambient-ring ring-one"/><span className="ambient-ring ring-two"/><span className="ambient-sprig"/><span className="ambient-spark spark-a">✦</span><span className="ambient-spark spark-b">·</span><span className="ambient-spark spark-c">✧</span>
     </div>
-    <div className="hero-content"><p className="eyebrow">{t.tag}</p><h1>{t.hero}</h1><p>{t.heroText}</p><a className="button" href={`/templates?lang=${language}`}>{t.create} ↗</a></div><div className="hero-image hero-phone"><img src="/images/hero-hand-phone-v2.webp" alt={language==="tj"?"Дасти занона бо телефон ва даъватномаи онлайн":"Женская рука с телефоном и онлайн-приглашением"}/></div>
+    <div className="hero-content"><p className="eyebrow">{t.tag}</p><h1>{t.hero}</h1><p>{t.heroText}</p><a className="button" href={`/templates?lang=${language}`}>{t.create} ↗</a></div><div className="hero-image hero-phone"><img src="/images/bazmnoma-hand-phone.webp" alt={language==="tj"?"Дасти занона бо телефон ва даъватномаи онлайн":"Женская рука с телефоном и онлайн-приглашением"}/></div>
    </section>
    <TemplateCatalog standalone={false} language={language} limit={6}/>
-   <section className="soft-section"><div className="shell"><div className="section-heading"><div><p className="eyebrow">KHUSHBAKHT</p><h2>{t.benefits}</h2><p className="description">{t.benefitText}</p></div></div><div className="benefit-grid"><article><span>01</span><h3>{t.design}</h3><p>{t.designText}</p></article><article><span>02</span><h3>{t.fast}</h3><p>{t.fastText}</p></article></div></div></section>
+   <section className="soft-section"><div className="shell"><div className="section-heading"><div><p className="eyebrow">BAZMNOMA</p><h2>{t.benefits}</h2><p className="description">{t.benefitText}</p></div></div><div className="benefit-grid"><article><span>01</span><h3>{t.design}</h3><p>{t.designText}</p></article><article><span>02</span><h3>{t.fast}</h3><p>{t.fastText}</p></article></div></div></section>
    <section className="shell home-section"><h2>{t.how}</h2><div className="process-grid">{t.steps.map((item,index)=><article key={item}><b>0{index+1}</b><h3>{item}</h3></article>)}</div></section>
    <section className="shell home-section faq-section"><h2>{t.faq}</h2><div>{faq[language].map(([question,answer])=><details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
    <section className="shell final-cta"><h2>{t.final}</h2><a className="button" href={`/templates?lang=${language}`}>{t.choose} ↗</a></section>
@@ -206,7 +207,7 @@ export function Studio({catalogOnly=false}:{signedIn:boolean;catalogOnly?:boolea
   {tab==="edit"&&<VisualEditor data={data} step={step} language={language} photoUrl={photoUrl} orderPhoto={remotePhoto||undefined} busy={busy} error={error} signedIn={true} locked={locked} lockedMessage={order?.status==="published"?(language==="tj"?"Даъватномаи шумо нашр шудааст.":"Ваше приглашение опубликовано. Ссылка для гостей доступна ниже."):undefined} accessPanel={accessPanel} saveDraft={saveDraft} onExit={()=>go("orders")} update={update} setStep={setStep} setPhoto={setPhoto} submit={submit} signInUrl="/"/>}
   {tab==="orders"&&<Orders language={language} accesses={accesses} notice={notice} error={error} busy={busy} openSaved={openSaved} copyLink={copyLink}/>}
 
- </main>{tab!=="edit"&&<footer><div className="shell"><b>KHUSHBAKHT</b><span>{t.footer}</span></div></footer>}</>;
+ </main>{tab!=="edit"&&<footer><div className="shell"><b>BAZMNOMA</b><span>{t.footer}</span></div></footer>}</>;
 }
 
 function Orders({language,accesses,notice,error,busy,openSaved,copyLink}:{language:SiteLanguage;accesses:SavedAccess[];notice:string;error:string;busy:boolean;openSaved:(token:string)=>Promise<void>;copyLink:(token:string)=>Promise<void>}){

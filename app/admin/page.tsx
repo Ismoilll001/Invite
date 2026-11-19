@@ -1,5 +1,5 @@
 import type {Metadata} from "next";
 import {AdminPanel} from "./panel";
 export const dynamic="force-dynamic";
-export const metadata:Metadata={title:"Администратор · KHUSHBAKHT",robots:{index:false,follow:false}};
+export const metadata:Metadata={title:"Администратор · BAZMNOMA",robots:{index:false,follow:false}};
 export default function AdminPage(){return <AdminPanel/>;}

@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import {InvitationPage} from "./invitation-page";
 import {sample,templateDetail,templateName,templates,type EventFilter,type SiteLanguage} from "./model";
 
@@ -27,18 +27,31 @@ export function TemplateCatalog({standalone,language="tj",limit}:{standalone:boo
   </div>:<div className="section-heading"><div><h2>{t.title}</h2><p className="description">{t.description}</p></div></div>}
   <div className={standalone?"catalog-controls":""}>
    <div className="style-filters" role="group" aria-label={language==="tj"?"Навъи маросим":"Вид события"}>
-    {(["all","wedding","morning","both"] as EventFilter[]).map(item=><button key={item} type="button" aria-pressed={filter===item} onClick={()=>setFilter(item)}>{t[item]}</button>)}
+    {(["all","wedding","morning","both"] as EventFilter[]).filter(value=>value==="all"||templates.some(item=>item.event===value)).map(item=><button key={item} type="button" aria-pressed={filter===item} onClick={()=>setFilter(item)}>{t[item]}</button>)}
    </div>
    {standalone&&<select className="catalog-sort" aria-label={language==="tj"?"Тартиб":"Сортировка"} value={sort} onChange={e=>setSort(e.target.value)}><option value="popular">{t.popular}</option><option value="newest">{t.newest}</option><option value="low">{t.low}</option><option value="high">{t.high}</option></select>}
   </div>
-  <div className="gallery">
+  <div className="gallery template-gallery">
    {visible.map(item=><article className="tile" key={item.id}><a href={`/templates/${item.id}?lang=${language}`} className="tile-link" aria-label={templateName(item,language)}>
-    <div className="tile-preview">
-     <InvitationPage data={{...sample,template:item.id,locale:language,eventType:item.event}} coverOnly/>
-    </div>
+    <TemplatePreview item={item} language={language}/>
     <div className="tile-caption"><div><p className="tile-style">{templateDetail(item,language)}</p><h3>{templateName(item,language)}</h3><p><strong>{item.price}</strong> {t.currency}</p></div><span className="icon" aria-hidden="true">↗</span></div>
    </a></article>)}
   </div>
   {!standalone&&<div className="catalog-more"><a className="button secondary" href={`/templates?lang=${language}`}>{language==="tj"?"Ҳамаи қолабҳо":"Все шаблоны"} ↗</a></div>}
  </section>;
+}
+
+function TemplatePreview({item,language}:{item:(typeof templates)[number];language:SiteLanguage}){
+ const root=useRef<HTMLDivElement>(null);
+ const [visible,setVisible]=useState(false);
+ useEffect(()=>{
+  const element=root.current;
+  if(!element)return;
+  if(typeof IntersectionObserver==="undefined"){setVisible(true);return;}
+  const observer=new IntersectionObserver(([entry])=>setVisible(entry.isIntersecting),{threshold:.15});
+  observer.observe(element);return ()=>observer.disconnect();
+ },[]);
+ return <div className="tile-preview" ref={root} data-preview-visible={visible}>
+  <InvitationPage data={{...sample,template:item.id,locale:language,eventType:item.event}} coverOnly/>
+ </div>;
 }

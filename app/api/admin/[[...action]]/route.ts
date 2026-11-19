@@ -3,14 +3,14 @@ import {getDb} from "@/db";
 import {orders} from "@/db/schema";
 import {adminConfigured,checkAdmin,createAdminSession,endAdminSession,loginAllowed,passwordMatches,sameOrigin} from "@/app/admin-auth";
 import {bucket,serialize} from "@/app/store";
-import {templates,validSlug} from "@/app/model";
+import {allTemplates,validSlug} from "@/app/model";
 
 type Context={params:Promise<{action?:string[]}>};
 const headers={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(value:unknown,status=200,extra:Record<string,string>={})=>Response.json(value,{status,headers:{...headers,...extra}});
 const error=(message:string,status=400)=>json({error:message},status);
 const unauthenticated=()=>error("Войдите в панель администратора.",401);
-function adminOrder(row:typeof orders.$inferSelect){return {...serialize(row),revision:row.revision,updated:row.updated,price:templates.find(t=>t.id===row.payload.template)?.price??0};}
+function adminOrder(row:typeof orders.$inferSelect){return {...serialize(row),revision:row.revision,updated:row.updated,price:allTemplates.find(t=>t.id===row.payload.template)?.price??0};}
 
 export async function GET(request:Request,{params}:Context){
  try{
