@@ -1,0 +1,51 @@
+export const templates = [
+ {id:"rose", nameTj:"Гули садбарг",nameRu:"Бархатная роза",event:"wedding",tier:"standard",price:100,detailTj:"Барои тӯйи арӯсӣ",detailRu:"Для свадебного торжества",description:"Рангҳои гарми гулобӣ, ҳошияи дуқабата ва номҳои калон."},
+ {id:"olive", nameTj:"Субҳи сабз",nameRu:"Оливковое утро",event:"morning",tier:"standard",price:100,detailTj:"Барои оши наҳор",detailRu:"Для оши наҳор",description:"Рангҳои ороми зайтунӣ ва фазои сабуки саҳарӣ."},
+ {id:"gold", nameTj:"Номаи заррин",nameRu:"Золотое письмо",event:"both",tier:"premium",price:150,detailTj:"Тӯй ва оши наҳор",detailRu:"Свадьба и оши наҳор",description:"Заминаи айвори, ҷузъиёти заррин ва ду барномаи ҷашн."},
+] as const;
+export const sample={template:"rose",first:"Сатторҷон",second:"Мадинахон",date:"2027-06-12",time:"18:00",venue:"Тарабхонаи «Навгилем»",address:"Исфара, Тоҷикистон",message:"",locale:"tj",slug:"sattorjon-madinakhon",eventType:"wedding",morningDate:"2027-06-12",morningTime:"08:00",morningVenue:"Ҳавлии домод",morningAddress:"Исфара, Тоҷикистон",program:"18:00 — Пешвози меҳмонон\n19:00 — Оғози базм",guests:""};
+export const empty={...sample,first:"",second:"",date:"",time:"",venue:"",address:"",slug:"",morningDate:"",morningTime:"",morningVenue:"",morningAddress:"",program:"",guests:""};
+export const optionalSections = ["countdown","welcome","photo","story","details","program","closing"] as const;
+export type Invite=typeof sample & {palette?: string; hiddenSections?: string; textOverrides?: string};
+export function invitationTextOverrides(value?: string): Record<string,string> {
+ if(!value)return {};
+ try {
+  const parsed:unknown=JSON.parse(value);
+  if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))return {};
+  return Object.fromEntries(Object.entries(parsed).filter(([key,text])=>
+   /^[a-z][a-zA-Z0-9.]{0,35}$/.test(key)&&typeof text==="string"&&text.length<=450
+  ).slice(0,80));
+ } catch {return {};}
+}
+
+export type SiteLanguage="tj"|"ru";
+export type EventFilter="all"|"wedding"|"morning"|"both";
+export function templateName(template:(typeof templates)[number],language:SiteLanguage){return language==="tj"?template.nameTj:template.nameRu;}
+export function templateDetail(template:(typeof templates)[number],language:SiteLanguage){return language==="tj"?template.detailTj:template.detailRu;}
+
+export const palettes = [
+ {id:"ivory", label:"Сафеди оҷӣ", background:"#f8f4eb", ink:"#30271d", accent:"#967b54"},
+ {id:"blue", label:"Кабуди хира", background:"#edf2f6", ink:"#243749", accent:"#657d94"},
+ {id:"blush", label:"Гулобии нозук", background:"#f7ebed", ink:"#502c39", accent:"#9c5b70"},
+ {id:"sage", label:"Сабзи зайтунӣ", background:"#edf0e5", ink:"#35442c", accent:"#687a56"},
+ {id:"champagne", label:"Кремии тиллоӣ", background:"#f5eddf", ink:"#503923", accent:"#a17b4a"},
+] as const;
+
+export function palettesFor(template:string){
+ const defaultId=template==="rose"?"blush":template==="olive"?"sage":"ivory";
+ return [
+  palettes.find(item=>item.id===defaultId)!,
+  ...palettes.filter(item=>item.id!==defaultId&&["ivory","blue","champagne"].includes(item.id)).slice(0,2),
+ ];
+}
+
+export function paletteFor(template:string,palette?:string){
+ const options=palettesFor(template);
+ return options.find(item=>item.id===palette)??options[0];
+}
+
+export const statuses={draft:"Пешнавис",pending:"Пардохт дар ҳоли санҷиш",returned:"Расиди нав лозим аст",published:"Нашр шуд"};
+export type Status=keyof typeof statuses;
+export type Order={id:string; data:Invite; status:Status; note:string|null; photo:boolean; receipt:boolean; demo:boolean};
+const reserved=new Set(["www","invite","admin","mail","api","cdn","app","ftp","demo","support","shop"]);
+export function validSlug(slug:string){return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)&&slug.length>=3&&slug.length<=50&&!reserved.has(slug);}
