@@ -1,15 +1,22 @@
 "use client";
 
-import {useEffect,useMemo,useState,type FormEvent} from "react";
+import {useEffect,useRef,useState,type FormEvent} from "react";
+import {createEditToken} from "./link-access";
 import {TemplateCatalog} from "./template-catalog";
 import {VisualEditor} from "./visual-editor";
 import {empty,paletteFor,palettesFor,templateName,templates,validSlug,type Invite,type Order,type SiteLanguage} from "./model";
 
-type Tab="home"|"catalog"|"edit"|"orders"|"review";
+type Tab="home"|"catalog"|"edit"|"orders";
 type Listing={orders:Order[];live:boolean;price:number;instructions:string;admin:boolean};
-const initial:Listing={orders:[],live:false,price:0,instructions:"",admin:false};
 const endpoint="/api/orders";
 const draftKey="khushbakhtDraft";
+const accessKey="khushbakhtLinks";
+type SavedAccess={token:string;order:Order};
+function readAccesses():SavedAccess[]{
+ try {const value=JSON.parse(localStorage.getItem(accessKey)||"[]");return Array.isArray(value)?value.filter(item=>/^[a-f0-9]{64}$/.test(item.token)&&item.order?.id).slice(0,30):[];}catch{return [];}
+}
+function editLink(token:string){return location.origin+"/?tab=edit#edit="+token;}
+
 
 const words={
  tj:{templates:"Қолабҳо",my:"Даъватномаҳои ман",review:"Санҷиши фармоишҳо",create:"Сохтани даъватнома",tag:"ДАЪВАТНОМАҲОИ ОНЛАЙН",hero:"Ҷашни Шумо аз ҳамин ҷо оғоз мешавад",heroText:"Даъватномаи зебои онлайн созед, маълумоти ҷашнро ворид намоед ва пайвандро ба меҳмонон фиристед.",benefits:"Зебо, зуд ва барои меҳмонон қулай",benefitText:"Қолабҳои премиалӣ, таҳрири осон, харита, барнома ва ҷавоби меҳмонон — ҳама дар як пайванд.",design:"Тарҳи зебо",designText:"Ҳар қолаб барои телефон ва ҳарфҳои тоҷикӣ бодиққат омода шудааст.",fast:"Сарфаи вақт",fastText:"Маълумотро пур кунед, расидро фиристед ва пас аз санҷиш пайвандро гиред.",how:"Чӣ тавр кор мекунад",steps:["Қолабро интихоб кунед","Маълумотро пур кунед","Пардохт ва санҷиш","Пайвандро ба меҳмонон фиристед"],faq:"Саволҳои маъмул",final:"Даъватномаи худро имрӯз созед",choose:"Интихоби қолаб",footer:"Лоиҳа аз ҷониби WOW PRINT",editor:"Сохтани даъватнома",preview:"Пешнамоиш",back:"Қафо",next:"Давом додан",skip:"Гузаронидан",send:"Фиристодан барои санҷиш",saveLocal:"Пешнавис дар ин дастгоҳ худкор нигоҳ дошта мешавад.",signin:"Барои фиристодан ворид шавед",currency:"сомонӣ"},
@@ -26,62 +33,160 @@ const textOptions={
  ru:["С радостью приглашаем вас разделить с нами день нашей свадьбы.","Будем счастливы видеть вас рядом в этот особенный день.","Приглашаем вас стать частью нашего прекрасного праздника."],
 };
 
-async function api<T>(path="",options?:RequestInit){
- const res=await fetch(endpoint+path,options);const body=await res.json().catch(()=>({})) as {error?:string};
+async function api<T>(path="",options?:RequestInit,token=""){
+ const headers=new Headers(options?.headers);
+ if(token)headers.set("Authorization","Bearer "+token);
+ const res=await fetch(endpoint+path,{...options,headers,cache:"no-store"});const body=await res.json().catch(()=>({})) as {error?:string};
  if(!res.ok)throw new Error(body.error||"Хидмат муваққатан дастнорас аст.");return body as T;
 }
 
-export function Studio({signedIn,catalogOnly=false}:{signedIn:boolean;catalogOnly?:boolean}){
+export function Studio({catalogOnly=false}:{signedIn:boolean;catalogOnly?:boolean}){
  const [language,setLanguage]=useState<SiteLanguage>("ru");
  const [tab,setTab]=useState<Tab>(catalogOnly?"catalog":"home");
  const [step,setStep]=useState(0);
  const [data,setData]=useState<Invite>(empty);
  const [photo,setPhoto]=useState<File|null>(null);
  const [photoUrl,setPhotoUrl]=useState("");
- const [list,setList]=useState<Listing>(initial);
+ const [remotePhoto,setRemotePhoto]=useState("");
  const [order,setOrder]=useState<Order|null>(null);
+ const [accessToken,setAccessToken]=useState("");
+ const tokenRef=useRef("");
+ const saving=useRef(false);
+ const [accesses,setAccesses]=useState<SavedAccess[]>([]);
  const [notice,setNotice]=useState("");
  const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);
- const [returned,setReturned]=useState("");
- const [note,setNote]=useState("");
+ const [ready,setReady]=useState(false);
  const t=words[language];
-
- useEffect(()=>{
-  const query=new URLSearchParams(location.search);const queryLanguage=query.get("lang");
-  const savedLanguage=localStorage.getItem("khushbakhtLanguage");
-  const nextLanguage:SiteLanguage=queryLanguage==="tj"||queryLanguage==="ru"?queryLanguage:savedLanguage==="tj"||savedLanguage==="ru"?savedLanguage:"ru";setLanguage(nextLanguage);
-  const requested=query.get("tab");if(requested==="orders"||requested==="review")setTab(requested);
-  if(requested==="edit"){
-   const template=templates.find(item=>item.id===query.get("template"))?.id??empty.template;
-   let draft:{data?:Invite;step?:number;stepVersion?:number}|null=null;try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
-   setData(draft?.data??{...empty,template,locale:nextLanguage,palette:paletteFor(template,query.get("palette")??undefined).id});
-   setStep(draft?.stepVersion!==2&&(draft?.step??0)>=4?(draft?.step??0)+1:draft?.step??0);setTab("edit");
+ const locked=!!order&&!['draft','returned'].includes(order.status);
+ function remember(value:Order,token:string){
+  const all=[{order:value,token},...readAccesses().filter(item=>item.order.id!==value.id)].slice(0,30);
+  setAccesses(all);
+  try {localStorage.setItem(accessKey,JSON.stringify(all));}catch{
+   setNotice("Скопируйте личную ссылку: браузер не разрешает сохранить её на устройстве.");
   }
+ }
+ function selectToken(token:string){tokenRef.current=token;setAccessToken(token);}
+ async function openSaved(token:string){
+  if(saving.current)return;
+  setBusy(true);setError("");selectToken(token);
+  try {
+   const value=await api<Listing>("",undefined,token);
+   const saved=value.orders[0];
+   if(!saved){
+    let draft:{data?:Invite;editToken?:string}|null=null;
+    try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
+    if(draft?.editToken===token&&draft.data){
+     setData(draft.data);setOrder(null);setStep(6);setTab("edit");
+     setNotice("Сохранение не завершилось. Нажмите «Оформить заказ», чтобы повторить.");return;
+    }
+    throw new Error("Сохранённое приглашение не найдено. Проверьте личную ссылку.");
+   }
+   setOrder(saved);setData(saved.data);setPhoto(null);setStep(7);setTab("edit");remember(saved,token);setNotice("");
+   history.replaceState(null,"",editLink(token));
+  }catch(e){setError((e as Error).message);setTab("orders");}
+  finally{setBusy(false);setReady(true);}
+ }
+ useEffect(()=>{
+  const query=new URLSearchParams(location.search);
+  const savedLanguage=localStorage.getItem("khushbakhtLanguage");
+  const requestedLanguage=query.get("lang");
+  const nextLanguage:SiteLanguage=requestedLanguage==="tj"||requestedLanguage==="ru"?requestedLanguage:savedLanguage==="tj"?"tj":"ru";
+  setLanguage(nextLanguage);setAccesses(readAccesses());
+  const token=new URLSearchParams(location.hash.slice(1)).get("edit");
+  if(token){
+   if(/^[a-f0-9]{64}$/.test(token)){void openSaved(token);return;}
+   setError("Личная ссылка повреждена. Скопируйте её полностью.");setTab("orders");setReady(true);return;
+  }
+  if(query.get("tab")==="orders")setTab("orders");
+  if(query.get("tab")==="edit"){
+   const template=templates.find(item=>item.id===query.get("template"))?.id??empty.template;
+   let draft:{data?:Invite;step?:number;editToken?:string}|null=null;
+   try{draft=JSON.parse(localStorage.getItem(draftKey)||"null");}catch{}
+   // A new template choice starts its own invitation; explicit resume restores the device draft.
+   const resume=query.get("resume")==="yes"||(draft?.data?.template===template&&!draft?.editToken);
+   if(resume&&draft?.editToken){void openSaved(draft.editToken);return;}
+   setData(resume&&draft?.data?draft.data:{...empty,template,locale:nextLanguage,palette:paletteFor(template,query.get("palette")??undefined).id});
+   setStep(resume?Math.min(draft?.step??0,6):0);setTab("edit");
+  }
+  setReady(true);
  },[]);
- useEffect(()=>{localStorage.setItem("khushbakhtLanguage",language);},[language]);
- useEffect(()=>{if(tab==="edit")localStorage.setItem(draftKey,JSON.stringify({data,step,stepVersion:2}));},[data,step,tab]);
- useEffect(()=>{if(!signedIn)return;let active=true;api<Listing>(tab==="review"?"/review":"").then(value=>active&&setList(value)).catch(e=>active&&setError(e.message));return()=>{active=false};},[signedIn,tab]);
- useEffect(()=>{if(!photo){setPhotoUrl("");return;}const url=URL.createObjectURL(photo);setPhotoUrl(url);return()=>URL.revokeObjectURL(url);},[photo]);
-
- const currentTemplate=useMemo(()=>templates.find(item=>item.id===data.template)??templates[0],[data.template]);
- function changeLanguage(next:SiteLanguage){setLanguage(next);setData(current=>({...current,locale:next}));}
- function update(key:keyof Invite,value:string){setData(current=>key==="template"?{...current,[key]:value,palette:paletteFor(value).id}:{...current,[key]:value});}
- function openEditor(template=templates[0].id){setData(current=>({...current,template,locale:language,palette:paletteFor(template).id}));setStep(0);setTab("edit");window.scrollTo({top:0});}
- function go(next:Tab){setError("");setNotice("");setTab(next);window.scrollTo({top:0});}
- function signInUrl(){return "/signin-with-chatgpt?return_to="+encodeURIComponent("/?tab=edit&template="+data.template+"&resume=yes");}
-
+ useEffect(()=>{if(ready)try{localStorage.setItem("khushbakhtLanguage",language);}catch{}},[language,ready]);
+ useEffect(()=>{
+  if(ready&&tab==="edit"&&!locked)try{localStorage.setItem(draftKey,JSON.stringify({data,step,stepVersion:2,editToken:accessToken}));}catch{}
+ },[data,step,tab,ready,accessToken,locked]);
+ useEffect(()=>{
+  if(!photo){setPhotoUrl("");return;}
+  const url=URL.createObjectURL(photo);setPhotoUrl(url);return()=>URL.revokeObjectURL(url);
+ },[photo]);
+ useEffect(()=>{
+  setRemotePhoto("");if(!order?.photo||!accessToken)return;
+  let active=true;let url="";const abort=new AbortController();
+  fetch(`${endpoint}/${order.id}/photo`,{headers:{Authorization:"Bearer "+accessToken},signal:abort.signal,cache:"no-store"})
+   .then(async response=>{if(!response.ok)throw new Error("Не удалось загрузить сохранённую фотографию.");return response.blob();})
+   .then(blob=>{if(active){url=URL.createObjectURL(blob);setRemotePhoto(url);}})
+   .catch(e=>{if(active&&e.name!=="AbortError")setError(e.message);});
+  return()=>{active=false;abort.abort();if(url)URL.revokeObjectURL(url);};
+ },[order?.id,order?.photo,accessToken]);
+ useEffect(()=>{
+  if(tab!=="orders")return;
+  let active=true;
+  const saved=readAccesses();
+  Promise.all(saved.map(async item=>{
+   const listing=await api<Listing>("",undefined,item.token);
+   return listing.orders[0]?{token:item.token,order:listing.orders[0]}:null;
+  })).then(items=>{
+   if(!active)return;
+   const updated=items.filter((item):item is SavedAccess=>!!item);
+   setAccesses(updated);try{localStorage.setItem(accessKey,JSON.stringify(updated));}catch{}
+  }).catch(()=>{if(active)setError("Не удалось обновить статусы. Сохранённые ссылки доступны ниже.");});
+  return()=>{active=false;};
+ },[tab]);
+ function changeLanguage(next:SiteLanguage){setLanguage(next);if(!locked)setData(current=>({...current,locale:next}));}
+ function update(key:keyof Invite,value:string){if(!locked)setData(current=>key==="template"?{...current,[key]:value,palette:paletteFor(value).id}:{...current,[key]:value});}
+ function go(next:Tab){if(busy)return;setError("");setNotice("");setTab(next);window.scrollTo({top:0});}
+ async function saveDraft(slug=data.slug):Promise<boolean>{
+  if(saving.current)return false;
+  saving.current=true;setBusy(true);setError("");
+  const token=tokenRef.current||createEditToken();selectToken(token);
+  // Retain the capability before sending, so a lost response can be safely retried.
+  history.replaceState(null,"",editLink(token));
+  try{localStorage.setItem(draftKey,JSON.stringify({data:{...data,slug},step,stepVersion:2,editToken:token}));}catch{}
+  const form=new FormData();form.set("data",JSON.stringify({...data,slug,guests:""}));
+  if(photo)form.set("photo",photo);if(order)form.set("id",order.id);
+  try{
+   const result=await api<{order:Order}>("",{method:"POST",body:form},token);
+   setOrder(result.order);remember(result.order,token);setNotice("");return true;
+  }catch(e){setError((e as Error).message);return false;}
+  finally{saving.current=false;setBusy(false);}
+ }
  async function submit(event:FormEvent<HTMLFormElement>){
-  event.preventDefault();setError("");
-  if(!data.first||!data.second||!validSlug(data.slug)){setError(language==="tj"?"Номҳо ва нишонии дурусти пайвандро ворид кунед.":"Заполните имена и правильный адрес ссылки.");return;}
-  const form=new FormData(event.currentTarget);if(photo)form.set("photo",photo);form.set("data",JSON.stringify({...data,guests:""}));form.set("submit","yes");if(order)form.set("id",order.id);
-  setBusy(true);try{const result=await api<{order:Order}>("",{method:"POST",body:form});setOrder(result.order);localStorage.removeItem(draftKey);go("orders");setNotice(language==="tj"?"Фармоиш барои санҷиш фиристода шуд.":"Заказ отправлен на проверку.");}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  event.preventDefault();if(saving.current)return;
+  if(!order||!tokenRef.current){setError("Сначала сохраните приглашение на шаге просмотра.");return;}
+  saving.current=true;setBusy(true);setError("");
+  const form=new FormData(event.currentTarget);
+  if(photo)form.set("photo",photo);
+  form.set("data",JSON.stringify({...data,guests:""}));form.set("submit","yes");form.set("id",order.id);
+  try{
+   const result=await api<{order:Order}>("",{method:"POST",body:form},tokenRef.current);
+   setOrder(result.order);remember(result.order,tokenRef.current);
+   try{localStorage.removeItem(draftKey);}catch{}
+   setTab("orders");setNotice(language==="tj"?"Расид барои санҷиш фиристода шуд.":"Квитанция отправлена на проверку. Приглашение пока не опубликовано.");
+   history.replaceState(null,"",location.pathname+"?tab=orders");window.scrollTo({top:0});
+  }catch(e){setError((e as Error).message);}finally{saving.current=false;setBusy(false);}
  }
- async function review(id:string,decision:"publish"|"return"){
-  setBusy(true);try{await api("/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,decision,note})});setList(await api<Listing>("/review"));setReturned("");}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+ async function copyLink(token:string){
+  try{await navigator.clipboard.writeText(editLink(token));setNotice(language==="tj"?"Пайванди шахсӣ нусхабардорӣ шуд.":"Личная ссылка скопирована.");}catch{setNotice(language==="tj"?"Пайвандро аз майдони поён нусхабардорӣ кунед.":"Скопируйте ссылку из поля ниже.");}
  }
-
- const header=<header><div className="shell navbar"><a className="brand khush-brand" href="/">KHUSHBAKHT<small>{language==="tj"?"ДАЪВАТНОМАҲОИ ОНЛАЙН":"ОНЛАЙН-ПРИГЛАШЕНИЯ"}</small></a><nav aria-label="Main"><a href={`/templates?lang=${language}`}>{t.templates}</a><button onClick={()=>go("orders")}>{t.my}</button>{list.admin&&<button onClick={()=>go("review")}>{t.review}</button>}</nav><div className="header-actions"><div className="language-switch"><button aria-pressed={language==="tj"} onClick={()=>changeLanguage("tj")}>Тоҷ</button><button aria-pressed={language==="ru"} onClick={()=>changeLanguage("ru")}>Рус</button></div><a className="button top-cta" href={`/templates?lang=${language}`}>{t.create} ↗</a></div></div></header>;
+ const accessPanel=order&&accessToken?<div className="private-link-panel">
+  <strong>{language==="tj"?"Пайванди шахсии шумо":"Ваша личная ссылка"}</strong>
+  <p>{language==="tj"?"Онро нигоҳ доред. Ҳар касе ки ин пайвандро дорад, ба фармоиш дастрасӣ дорад.":"Сохраните её для возврата к заказу с любого устройства. Не отправляйте её гостям: она открывает доступ к заказу."}</p>
+  <input aria-label={language==="tj"?"Пайванди шахсӣ":"Личная ссылка"} readOnly value={editLink(accessToken)} onFocus={event=>event.currentTarget.select()}/>
+  {order.status==="published"&&<a className="button" href={`/i/${order.data.slug}`} target="_blank" rel="noreferrer">{language==="tj"?"Пайванд барои меҳмонон":"Открыть ссылку для гостей"}</a>}
+  <button type="button" className="button secondary" onClick={()=>copyLink(accessToken)}>{language==="tj"?"Нусхабардорӣ":"Скопировать ссылку"}</button>
+  {notice&&<p role="status">{notice}</p>}
+ </div>:null;
+ const header=<header><div className="shell navbar"><a className="brand khush-brand" href="/">KHUSHBAKHT<small>{language==="tj"?"ДАЪВАТНОМАҲОИ ОНЛАЙН":"ОНЛАЙН-ПРИГЛАШЕНИЯ"}</small></a><nav aria-label="Main"><a href={`/templates?lang=${language}`}>{t.templates}</a><button onClick={()=>go("orders")}>{t.my}</button></nav><div className="header-actions"><div className="language-switch"><button aria-pressed={language==="tj"} onClick={()=>changeLanguage("tj")}>Тоҷ</button><button aria-pressed={language==="ru"} onClick={()=>changeLanguage("ru")}>Рус</button></div><a className="button top-cta" href={`/templates?lang=${language}`}>{t.create} ↗</a></div></div></header>;
 
  return <>{tab!=="edit"&&header}<main className={tab==="edit"?"visual-editor-main":undefined}>
   {tab==="home"&&<>
@@ -98,20 +203,23 @@ export function Studio({signedIn,catalogOnly=false}:{signedIn:boolean;catalogOnl
    <section className="shell final-cta"><h2>{t.final}</h2><a className="button" href={`/templates?lang=${language}`}>{t.choose} ↗</a></section>
   </>}
   {tab==="catalog"&&<TemplateCatalog standalone language={language}/>}
-  {tab==="edit"&&<VisualEditor data={data} step={step} language={language} photoUrl={photoUrl} orderPhoto={order?.photo?`${endpoint}/${order.id}/photo`:undefined} busy={busy} error={error} signedIn={signedIn} update={update} setStep={setStep} setPhoto={setPhoto} submit={submit} signInUrl={signInUrl()}/>}
-  {(tab==="orders"||tab==="review")&&<Orders language={language} tab={tab} signedIn={signedIn} list={list} notice={notice} error={error} busy={busy} returned={returned} note={note} setReturned={setReturned} setNote={setNote} review={review}/>}
+  {tab==="edit"&&<VisualEditor data={data} step={step} language={language} photoUrl={photoUrl} orderPhoto={remotePhoto||undefined} busy={busy} error={error} signedIn={true} locked={locked} lockedMessage={order?.status==="published"?(language==="tj"?"Даъватномаи шумо нашр шудааст.":"Ваше приглашение опубликовано. Ссылка для гостей доступна ниже."):undefined} accessPanel={accessPanel} saveDraft={saveDraft} onExit={()=>go("orders")} update={update} setStep={setStep} setPhoto={setPhoto} submit={submit} signInUrl="/"/>}
+  {tab==="orders"&&<Orders language={language} accesses={accesses} notice={notice} error={error} busy={busy} openSaved={openSaved} copyLink={copyLink}/>}
+
  </main>{tab!=="edit"&&<footer><div className="shell"><b>KHUSHBAKHT</b><span>{t.footer}</span></div></footer>}</>;
 }
 
-function BasicStep({data,update,language}:{data:Invite;update:(key:keyof Invite,value:string)=>void;language:SiteLanguage}){
- const morning=data.eventType!=="wedding",wedding=data.eventType!=="morning";
- return <section><h2>{language==="tj"?"Маълумоти асосӣ":"Основные данные"}</h2><label>{language==="tj"?"Навъи маросим":"Вид события"}<select value={data.eventType} onChange={e=>update("eventType",e.target.value)}><option value="wedding">{language==="tj"?"Тӯйи арӯсӣ":"Свадьба"}</option><option value="morning">{language==="tj"?"Оши наҳор":"Оши наҳор"}</option><option value="both">{language==="tj"?"Ҳар ду маросим":"Оба события"}</option></select></label><div className="fields"><label>{language==="tj"?"Номи домод":"Имя жениха"}<input value={data.first} maxLength={45} onChange={e=>update("first",e.target.value)}/></label><label>{language==="tj"?"Номи арӯс":"Имя невесты"}<input value={data.second} maxLength={45} onChange={e=>update("second",e.target.value)}/></label></div>
- {wedding&&<fieldset className="event-box"><legend>{language==="tj"?"Тӯйи арӯсӣ":"Свадьба"}</legend><div className="fields"><label>{language==="tj"?"Сана":"Дата"}<input type="date" value={data.date} onChange={e=>update("date",e.target.value)}/></label><label>{language==="tj"?"Соат":"Время"}<input type="time" value={data.time} onChange={e=>update("time",e.target.value)}/></label></div><label>{language==="tj"?"Ҷой":"Место"}<input value={data.venue} maxLength={100} onChange={e=>update("venue",e.target.value)}/></label><label>{language==="tj"?"Суроға":"Адрес"}<input value={data.address} maxLength={160} onChange={e=>update("address",e.target.value)}/></label></fieldset>}
- {morning&&<fieldset className="event-box"><legend>{language==="tj"?"Оши наҳор":"Оши наҳор"}</legend><div className="fields"><label>{language==="tj"?"Сана":"Дата"}<input type="date" value={data.morningDate} onChange={e=>update("morningDate",e.target.value)}/></label><label>{language==="tj"?"Соат":"Время"}<input type="time" value={data.morningTime} onChange={e=>update("morningTime",e.target.value)}/></label></div><label>{language==="tj"?"Ҷой":"Место"}<input value={data.morningVenue} maxLength={100} onChange={e=>update("morningVenue",e.target.value)}/></label><label>{language==="tj"?"Суроға":"Адрес"}<input value={data.morningAddress} maxLength={160} onChange={e=>update("morningAddress",e.target.value)}/></label></fieldset>}
+function Orders({language,accesses,notice,error,busy,openSaved,copyLink}:{language:SiteLanguage;accesses:SavedAccess[];notice:string;error:string;busy:boolean;openSaved:(token:string)=>Promise<void>;copyLink:(token:string)=>Promise<void>}){
+ const status:Record<string,string>=language==="tj"?{draft:"Пардохт нашудааст",pending:"Дар санҷиш",returned:"Баргардонда шуд",published:"Нашр шуд"}:{draft:"Ожидает оплаты",pending:"На проверке",returned:"Возвращён",published:"Опубликован"};
+ return <section className="shell workspace"><h1>{language==="tj"?"Даъватномаҳои ман":"Мои приглашения"}</h1>
+  {notice&&<p className="notice" role="status">{notice}</p>}{error&&<p className="alert" role="alert">{error}</p>}
+  <p>{language==="tj"?"Фармоишҳои дар ин дастгоҳ нигоҳдошташуда. Барои дастгоҳи дигар пайванди шахсиро истифода баред.":"Здесь заказы, сохранённые на этом устройстве. На другом устройстве откройте свою личную ссылку."}</p>
+  <div className="orders">{!accesses.length?<div className="panel">{language==="tj"?"Ҳоло фармоиш нест.":"Сохранённых заказов пока нет."}</div>:accesses.map(({order:item,token})=><article className="panel" key={item.id}>
+   <div className="order-head"><div><h2>{item.data.first} &amp; {item.data.second}</h2><p>{item.data.date||item.data.morningDate}</p></div><span className={`status ${item.status}`}>{status[item.status]}</span></div>
+   {item.note&&<p className="notice">{item.note}</p>}
+   <div className="actions"><button className="button" disabled={busy} onClick={()=>openSaved(token)}>{language==="tj"?"Кушодан":"Открыть заказ"}</button><button className="button secondary" onClick={()=>copyLink(token)}>{language==="tj"?"Пайванди шахсӣ":"Личная ссылка"}</button>
+    {item.status==="published"&&<a className="button secondary" href={`/i/${item.data.slug}`} target="_blank" rel="noreferrer">{language==="tj"?"Пайванд барои меҳмонон":"Ссылка для гостей"}</a>}
+   </div><input aria-label="Личная ссылка" readOnly value={editLink(token)} onFocus={event=>event.currentTarget.select()}/>
+  </article>)}</div>
  </section>;
-}
-
-function Orders({language,tab,signedIn,list,notice,error,busy,returned,note,setReturned,setNote,review}:{language:SiteLanguage;tab:"orders"|"review";signedIn:boolean;list:Listing;notice:string;error:string;busy:boolean;returned:string;note:string;setReturned:(id:string)=>void;setNote:(value:string)=>void;review:(id:string,decision:"publish"|"return")=>Promise<void>}){
- const status:{[key:string]:string}=language==="tj"?{draft:"Пешнавис",pending:"Дар санҷиш",returned:"Баргардонда шуд",published:"Нашр шуд"}:{draft:"Черновик",pending:"На проверке",returned:"Возвращён",published:"Опубликован"};
- return <section className="shell workspace"><h1>{tab==="orders"?(language==="tj"?"Даъватномаҳои ман":"Мои приглашения"):(language==="tj"?"Санҷиши фармоишҳо":"Проверка заказов")}</h1>{notice&&<p className="notice">{notice}</p>}{error&&<p className="alert">{error}</p>}{!signedIn?<div className="panel">{language==="tj"?"Барои идома ворид шавед.":"Войдите, чтобы продолжить."}</div>:<div className="orders">{list.orders.length===0?<div className="panel">{language==="tj"?"Ҳоло фармоиш нест.":"Заказов пока нет."}</div>:list.orders.map(item=><article className="panel" key={item.id}><div className="order-head"><div><h2>{item.data.first} & {item.data.second}</h2><p>{item.data.date||item.data.morningDate}</p></div><span className={`status ${item.status}`}>{status[item.status]}</span></div><div className="actions">{tab==="review"&&item.receipt&&<a className="button secondary" href={`${endpoint}/${item.id}/receipt`} target="_blank">{language==="tj"?"Расид":"Квитанция"} ↗</a>}{tab==="review"&&item.status==="pending"&&<><button className="button" disabled={busy} onClick={()=>review(item.id,"publish")}>{language==="tj"?"Тасдиқ ва нашр":"Одобрить и опубликовать"}</button><button className="link" onClick={()=>setReturned(item.id)}>{language==="tj"?"Баргардондан":"Вернуть"}</button></>}{item.status==="published"&&<a className="button secondary" href={`/i/${item.data.slug}`} target="_blank">{language==="tj"?"Кушодан":"Открыть"} ↗</a>}</div>{returned===item.id&&<div className="return-form"><label>{language==="tj"?"Шарҳ":"Комментарий"}<textarea value={note} onChange={e=>setNote(e.target.value)}/></label><button className="button secondary" onClick={()=>review(item.id,"return")}>{language==="tj"?"Фиристодан":"Отправить"}</button></div>}</article>)}</div>}</section>;
 }

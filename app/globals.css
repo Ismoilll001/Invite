@@ -794,3 +794,11 @@ small, label, button, input, select, textarea,
   .template-demo-rose .demo-name strong { font-size: 19px; }
   .template-demo-rose .demo-select { grid-column: 1 / -1; min-height: 44px; font-size: 16px; }
 }
+
+/* Private order controls do not appear on guest invitations. */
+.private-link-panel{max-width:640px;margin:24px auto;padding:20px;border:1px solid #dbc8ce;border-radius:16px;background:#fffaf7;text-align:left;overflow-wrap:anywhere}
+.private-link-panel p{font-size:1.05rem;line-height:1.5;margin:10px 0}
+.private-link-panel input,.orders article>input{box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;font-family:system-ui,sans-serif;font-size:14px;margin:12px 0;padding:12px;border:1px solid #dbc8ce;border-radius:8px}
+.editor-save-error{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:150;max-width:calc(100% - 32px);width:560px;padding:16px;background:#fff8f4;border:1px solid #9c5b70;border-radius:12px;box-shadow:0 4px 24px #502c3920;font-size:18px}
+.visual-editor button:disabled{opacity:.65;cursor:wait}
+@media(max-width:600px){.private-link-panel{padding:16px;margin:20px 12px}.private-link-panel input{font-size:16px}.private-link-panel p{font-size:18px}.editor-save-error{bottom:110px}}

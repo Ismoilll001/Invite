@@ -1,16 +1,16 @@
-import {and,desc,eq,ne} from "drizzle-orm";
+import {and,desc,eq} from "drizzle-orm";
 import {getDb} from "@/db";
 import {orders} from "@/db/schema";
 import {getChatGPTUser} from "@/app/chatgpt-auth";
 import {invitationTextOverrides,optionalSections,palettesFor,templates,validSlug,type Invite,type Status} from "@/app/model";
-import {bucket,config,published,serialize} from "@/app/store";
+import {bucket,published,serialize} from "@/app/store";
 type Context={params:Promise<{action?:string[]}>};
 const limit=5*1024*1024;
 const headers={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"};
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers});
 const err=(error:string,status=400)=>json({error},status);
 const missing=()=>err("Фармоиш ё файл ёфт нашуд.",404);
-const denied=()=>err("Барои идома ба ҳисоб ворид шавед.",401);
+const denied=()=>err("Откройте личную ссылку для доступа к заказу. / Пайванди шахсии худро кушоед.",401);
 const maxima={template:10,first:45,second:45,date:10,time:5,venue:100,address:160,message:450,locale:2,slug:50,eventType:10,morningDate:10,morningTime:5,morningVenue:100,morningAddress:160,program:1000,guests:5000};
 
 function parse(raw:unknown,submit:boolean):Invite|null{
@@ -67,8 +67,6 @@ export async function GET(request:Request,{params}:Context){
  if(id==="guest-photo"&&kind){const row=await published(kind);return row?sendFile(row.photo):missing();}
  const user=await getChatGPTUser();
  if(!user)return denied();
- const cfg=config();
- const admin=user.email.toLowerCase()===cfg.email;
  const db=getDb();
  if(id==="availability"){
   const search=new URL(request.url).searchParams;
@@ -77,16 +75,14 @@ export async function GET(request:Request,{params}:Context){
   const [row]=await db.select({id:orders.id,owner:orders.owner}).from(orders).where(eq(orders.slug,slug)).limit(1);
   return json({available:!row||(row.owner===user.userId&&row.id===search.get("id"))});
  }
- if(!id||id==="review"){
-  const owned=eq(orders.owner,user.userId);
-  const submitted=ne(orders.status,"draft");
-  const filter=id!=="review"?owned:admin&&cfg.live?and(submitted,eq(orders.demo,false)):and(owned,submitted,eq(orders.demo,true));
-  const rows=await db.select().from(orders).where(filter).orderBy(desc(orders.updated)).limit(100);
-  return json({orders:rows.map(serialize),live:cfg.live,price:cfg.price,instructions:cfg.instructions,admin});
+ if(id==="review")return err("Доступ запрещён.",403);
+ if(!id){
+  const rows=await db.select().from(orders).where(eq(orders.owner,user.userId)).orderBy(desc(orders.updated)).limit(1);
+  return json({orders:rows.map(serialize),live:true,price:0,instructions:"",admin:false});
  }
  if(kind==="photo"||kind==="receipt"){
   const [row]=await db.select().from(orders).where(eq(orders.id,id)).limit(1);
-  if(!row||(row.owner!==user.userId&&!(admin&&!row.demo&&row.status!=="draft")))return missing();
+  if(!row||row.owner!==user.userId)return missing();
   return sendFile(row[kind]);
  }
  return missing();
@@ -96,30 +92,23 @@ export async function POST(request:Request,{params}:Context){
  const user=await getChatGPTUser();
  if(!user)return denied();
  const [action]=(await params).action??[];
- const cfg=config();
  const db=getDb();
- if(action==="review"){
-  const body=await request.json().catch(()=>null) as {id?:unknown;decision?:unknown;note?:unknown}|null;
-  if(!body||typeof body.id!=="string"||(body.decision!=="publish"&&body.decision!=="return"))return err("Амали интихобшударо барои фармоиш санҷед.");
-  const [row]=await db.select().from(orders).where(eq(orders.id,body.id)).limit(1);
-  if(!row||(row.demo?row.owner!==user.userId:!cfg.live||user.email.toLowerCase()!==cfg.email))return missing();
-  const note=typeof body.note==="string"?body.note.trim().slice(0,500):"";
-  if(body.decision==="return"&&!note)return err("Сабаби баргардондани фармоишро нависед.");
-  const result=await db.update(orders).set({status:body.decision==="publish"?"published":"returned",note:note||null,updated:Date.now(),revision:crypto.randomUUID()}).where(and(eq(orders.id,row.id),eq(orders.status,"pending"),eq(orders.revision,row.revision))).returning();
-  return result.length?json({order:serialize(result[0])}):err("Фармоиш тағйир ёфт. Рӯйхатро нав кунед.",409);
- }
+ // Customer links must never grant moderation or self-publication.
+ if(action==="review")return err("Доступ запрещён.",403);
  if(action)return missing();
  if(Number(request.headers.get("content-length"))>2*limit+65536)return err("Ҳаҷми ҳар файл бояд то 5 МБ бошад.",413);
  const form=await request.formData().catch(()=>null);
  if(!form)return err("Варақаи фармоишро санҷед.");
  const submit=form.get("submit")==="yes";
+
  let data:Invite|null=null;
  try{data=parse(JSON.parse(String(form.get("data"))),submit);}catch{}
  if(!data)return err("Номҳо, сана, соат ва маълумоти даъватномаро санҷед.");
  const id=form.get("id");
- const [previous]=typeof id==="string"&&id?await db.select().from(orders).where(and(eq(orders.id,id),eq(orders.owner,user.userId))).limit(1):[];
+ const [previous]=await db.select().from(orders).where(id?and(eq(orders.id,String(id)),eq(orders.owner,user.userId)):eq(orders.owner,user.userId)).limit(1);
+ if(submit&&!previous)return err("Сначала сохраните приглашение перед оплатой.");
  if(id&&!previous)return missing();
- if(previous&&(previous.demo!==!cfg.live||!["draft","returned"].includes(previous.status)))return err("Ҳоло ин фармоишро тағйир дода наметавонед.",409);
+ if(previous&&(!["draft","returned"].includes(previous.status)))return err("Ҳоло ин фармоишро тағйир дода наметавонед.",409);
  const [taken]=data.slug?await db.select({id:orders.id}).from(orders).where(eq(orders.slug,data.slug)).limit(1):[];
  if(taken&&taken.id!==previous?.id)return err("Ин нишонӣ аллакай истифода мешавад.",409);
  const files=[];
@@ -131,7 +120,9 @@ export async function POST(request:Request,{params}:Context){
   files.push({file,type,contentType});
  }
  if(submit&&!files.some(f=>f.type==="receipt"))return err("Расиди пардохтро замима кунед.");
- const orderId=previous?.id??crypto.randomUUID();
+ const owner=user.userId;
+ // Stable ID makes retries of the first save idempotent for this capability.
+ const orderId=previous?.id??owner.slice(5);
  const replacement:{photo?:string;receipt?:string}={};
  try{
   for(const {file,type,contentType} of files){
@@ -143,7 +134,7 @@ export async function POST(request:Request,{params}:Context){
    revision:crypto.randomUUID(),updated:Date.now(),note:submit?null:previous?.note??null,
    photo:replacement.photo??previous?.photo??null,receipt:replacement.receipt??previous?.receipt??null};
   const result=previous?await db.update(orders).set(values).where(and(eq(orders.id,orderId),eq(orders.revision,previous.revision))).returning()
-   :await db.insert(orders).values({...values,id:orderId,owner:user.userId,demo:!cfg.live}).returning();
+   :await db.insert(orders).values({...values,id:orderId,owner,demo:false}).returning();
   if(!result.length){
    await Promise.allSettled(Object.values(replacement).map(key=>bucket().delete(key)));
    return err("Фармоиш тағйир ёфт. Саҳифаро нав кунед.",409);

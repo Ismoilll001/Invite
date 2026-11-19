@@ -5,7 +5,7 @@ import {InvitationPage} from "./invitation-page";
 import {paletteFor,palettesFor,templateName,templates,validSlug,type Invite,type SiteLanguage} from "./model";
 
 type Props={
- data:Invite;step:number;language:SiteLanguage;photoUrl:string;orderPhoto?:string;busy:boolean;error:string;signedIn:boolean;
+ data:Invite;step:number;language:SiteLanguage;photoUrl:string;orderPhoto?:string;busy:boolean;error:string;signedIn:boolean;locked?:boolean;lockedMessage?:string;accessPanel?:ReactNode;saveDraft?:(slug?:string)=>Promise<boolean>;onExit?:()=>void;
  update:(key:keyof Invite,value:string)=>void;setStep:(value:number|((value:number)=>number))=>void;setPhoto:(file:File|null)=>void;submit:(event:FormEvent<HTMLFormElement>)=>void;signInUrl:string;
 };
 
@@ -20,7 +20,7 @@ const messages={
  uz:["Сизни тўй маросимимизга самимий таклиф қиламиз.","Қувончли кунимизда Сизни кутиб қоламиз."],
 };
 
-export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,signedIn,update,setStep,setPhoto,submit,signInUrl}:Props){
+export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,signedIn,update,setStep,setPhoto,submit,signInUrl,locked=false,lockedMessage,accessPanel,saveDraft,onExit}:Props){
  const linkStep=6, previewStep=7, paymentStep=8;
  const t=copy[language];
  const isPreview=step===previewStep;
@@ -29,6 +29,7 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
  const currentTemplate=templates.find(item=>item.id===data.template)??templates[0];
  const photo=photoUrl||orderPhoto||"/images/demo-couple.webp";
  function edit(target:"cover"|"message"|"photo"|"location"|"program"){
+  if(locked||busy)return;
   const targetStep=target==="message"?2:target==="photo"?3:target==="location"?4:target==="program"?5:1;
   setStep(targetStep);
  }
@@ -59,7 +60,8 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
  function nextStep(){
   move(step+1);
  }
- function move(next:number,slug=data.slug){
+ async function move(next:number,slug=data.slug){
+  if(busy||locked)return;
   if(step===linkStep&&next===previewStep&&!validSlug(slug)){
    setLinkError(true);return;
   }
@@ -68,6 +70,7 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
     (data.eventType!=="wedding"&&(!data.morningDate||!data.morningTime||!data.morningVenue.trim())))){
    setDetailsError(true);setStep(!data.first.trim()||!data.second.trim()?1:4);return;
   }
+  if(saveDraft&&((step<previewStep&&next===previewStep)||next===paymentStep)&&!await saveDraft(slug))return;
   setDetailsError(false);
   setLinkError(false);setStep(Math.max(0,Math.min(totalSteps-1,next)));
 
@@ -80,26 +83,29 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
  if(step===5) sectionControls.program=<ProgramFields data={data} update={update} language={language}/>;
  if(optionalSection) sectionControls[optionalSection]=<>{sectionControls[optionalSection]}<button type="button" className="button secondary editor-skip" onClick={skip}>{skipLabel}</button></>;
  return <form className="visual-editor" onSubmit={event=>{
-  if(isPayment&&signedIn)submit(event);
+  if(isPayment&&signedIn&&!locked)submit(event);
   else event.preventDefault();
  }}>
   {isPreview&&<section data-editor-section="ready" className="invitation-ready" aria-labelledby="invitation-ready-title">
-   <h1 id="invitation-ready-title">{t.ready}</h1>
-   <p>{t.publish}</p>
-   <button type="button" className="button secondary" onClick={()=>move(1)}>{t.edit}</button>
-   <button type="button" className="button secondary editor-skip" onClick={()=>move(paymentStep)}>{skipLabel}</button>
+   <h1 id="invitation-ready-title">{locked?(language==="tj"?"Фармоиши шумо":"Ваш заказ"):t.ready}</h1>
+   <p>{lockedMessage??(locked?(language==="tj"?"Фармоиш барои санҷиш фиристода шудааст. Пайванди меҳмонон пас аз тасдиқ омода мешавад.":"Заказ отправлен на проверку. Ссылка для гостей будет доступна после подтверждения публикации."):t.publish)}</p>
+   {accessPanel}
+   {!locked&&<button disabled={busy} type="button" className="button secondary" onClick={()=>move(1)}>{t.edit}</button>}
+   {!locked&&<button disabled={busy} type="button" className="button secondary" onClick={()=>move(paymentStep)}>{t.pay}</button>}
   </section>}
-  <div className="visual-editor-canvas"><InvitationPage data={data} photo={isPreview||isPayment?photoUrl||orderPhoto:photo} editor={step>=linkStep?undefined:{onEdit:edit,update,setSectionHidden,controls:sectionControls}}/></div>
+  <div className="visual-editor-canvas"><InvitationPage data={data} photo={isPreview||isPayment?photoUrl||orderPhoto:photo} editor={locked||step>=linkStep?undefined:{onEdit:edit,update,setSectionHidden,controls:sectionControls}}/></div>
   {step===0&&<div className="language-choice-backdrop"><section className="language-choice-card"><span className="choice-mark">KHUSHBAKHT</span><h1>{t.chooseLanguage}</h1><p>{t.chooseLanguageText}</p><div className="language-choice-grid">
    {([['tj','Тоҷикӣ','Тоҷикӣ'],['ru','Русский','Русский'],['uz','Ўзбекча','Ўзбекча']] as const).map(([value,title,sample])=><button type="button" key={value} aria-pressed={data.locale===value} onClick={()=>update("locale",value)}><span>{value.toUpperCase()}</span><strong>{title}</strong><small>{sample}</small></button>)}
   </div><button type="button" className="button secondary editor-skip" onClick={skip}>{skipLabel}</button></section></div>}
   {(step===linkStep||isPayment)&&<section className="editor-in-place editor-checkout" data-editor-section="checkout">
    <h2>{isPayment?t.payment:t.link}</h2>
+   {isPayment&&accessPanel}
    {isPayment?<PaymentFields language={language} template={currentTemplate}/>:<LinkFields data={data} update={update} language={language} invalid={linkError}/>}
    <button type="button" className="button secondary editor-skip" onClick={isPayment?()=>move(previewStep):skip}>{isPayment?(language==="tj"?"Баъдтар пардохт кардан":"Оплатить позже"):skipLabel}</button>
-   {error&&<p className="alert" role="alert">{error}</p>}
+
   </section>}
-  <div className="visual-step-dock"><button type="button" className="visual-back" onClick={()=>step===0?location.assign(`/templates/${data.template}?lang=${language}`):move(step-1)}>← <span>{t.back}</span></button><div className="visual-progress"><strong>{t.steps[step]} · {step+1} {language==="tj"?"аз":"из"} {totalSteps}</strong><span><i style={{width:`${((step+1)/totalSteps)*100}%`}}/></span></div>{!isPayment?<button type="button" className="visual-next" onClick={nextStep}>{isPreview?t.pay:step===linkStep?t.steps[previewStep]:t.next} →</button>:signedIn?<button className="visual-next" disabled={busy}>{t.send} →</button>:<a className="visual-next" href={signInUrl} target="_top">{t.signin} →</a>}</div>
+  {error&&<p className="alert editor-save-error" role="alert">{error}</p>}
+  <div className="visual-step-dock"><button type="button" className="visual-back" disabled={busy} onClick={()=>locked?onExit?.():step===0?location.assign(`/templates/${data.template}?lang=${language}`):move(step-1)}>← <span>{t.back}</span></button><div className="visual-progress"><strong>{t.steps[step]} · {step+1} {language==="tj"?"аз":"из"} {totalSteps}</strong><span><i style={{width:`${((step+1)/totalSteps)*100}%`}}/></span></div>{locked?<button type="button" className="visual-next" onClick={onExit}>{language==="tj"?"Фармоишҳои ман":"Мои заказы"}</button>:!isPayment?<button disabled={busy} type="button" className="visual-next" onClick={nextStep}>{isPreview?t.pay:step===linkStep?(language==="tj"?"Сабти фармоиш":"Оформить заказ"):busy?(language==="tj"?"Сабт мешавад…":"Сохраняем…"):t.next} →</button>:signedIn?<button className="visual-next" disabled={busy}>{t.send} →</button>:<a className="visual-next" href={signInUrl} target="_top">{t.signin} →</a>}</div>
  </form>;
 }
 
