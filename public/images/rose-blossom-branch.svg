@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 136">
+  <defs>
+    <g id="b">
+      <path fill="#e4b4bf" d="M0-4C-17-26-31-5-17 4c-17 12 1 26 12 14 3 20 25 11 22-4 20 1 20-21 2-22C20-27 0-29 0-4Z"/>
+      <path fill="#f3d8de" d="M0 1c-13-16-17-7-12 2-9 8-1 16 8 9 2 12 16 7 13-2 12 0 11-11 2-12C13-13 2-13 0 1Z"/>
+      <circle r="4" fill="#c28b9e"/>
+    </g>
+  </defs>
+  <g fill="none" stroke="#a9a68b" stroke-width="1.5" stroke-linecap="round">
+    <path d="M0 93C92 33 162 9 291 22q57 5 106 46M40 70q49-5 98 39m46-87q38 9 54 56m50-55q38-4 65-22"/>
+  </g>
+  <g fill="#aab698">
+    <path d="M56 64q-7-21 3-29 8 15-3 29m25-11q18-4 21 7-16 4-21-7m63-23q-5-18 8-22 4 12-8 22m63-3q12-13 22-6-6 9-22 6m51-6q-4-14 8-19 4 11-8 19m59 8q13-10 23-7-5 12-23 7m32 12q-3 14 13 22 2-14-13-22m-227 58q-4-13 7-19 6 17-7 19"/>
+  </g>
+  <use href="#b" transform="translate(36 73) scale(1.05)"/>
+  <use href="#b" transform="translate(109 36) scale(.9)"/>
+  <use href="#b" transform="translate(143 109) scale(.62)"/>
+  <use href="#b" transform="translate(185 20) scale(.72)"/>
+  <use href="#b" transform="translate(238 78) scale(.69)"/>
+  <use href="#b" transform="translate(287 24) scale(.85)"/>
+  <use href="#b" transform="translate(355 48) scale(.56)"/>
+  <use href="#b" transform="translate(388 62) scale(.35)"/>
+</svg>

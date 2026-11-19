@@ -1,0 +1,1 @@
+export default function Missing(){return <main className="shell workspace"><h1>Даъватнома ҳоло дастнорас аст</h1><p>Нишониро санҷед ё пайвандро аз баргузоркунандаи тӯй пурсед.</p><p><a href="/templates" className="link">Ба феҳрист</a></p></main>}

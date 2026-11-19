@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794569680551,
+      "tag": "0000_initial_invitation_orders",
+      "breakpoints": true
+    }
+  ]
+}
