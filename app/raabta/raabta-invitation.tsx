@@ -1,4 +1,7 @@
 "use client";
+import {InvitationCredit} from "../invitation-credit";
+import {GuestGreeting} from "../invitation-extras";
+import {sectionVisible} from "../model";
 
 // Raabta's scene markup, artwork and motion styles are adapted from
 // ziyazee/wedding-invite (src/pages/raabta). Orders and editing use our engine.
@@ -45,13 +48,13 @@ export function RaabtaInvitation(props:InvitationProps){
  }
  return <EditContext.Provider value={props}><RaabtaFull {...props}/></EditContext.Provider>;
 }
-function RaabtaFull({data,photo,editor,preview}:InvitationProps){
+function RaabtaFull({data,photo,editor,preview,rsvp,guest,skipOpening}:InvitationProps){
  const locale=data.locale==="ru"?"ru":data.locale==="uz"?"uz":"tj";
  const t=copy[locale];
  const first=data.first||sample.first,second=data.second||sample.second;
  const root=useRef<HTMLDivElement>(null);
- const [opened,setOpened]=useState(Boolean(editor||preview));
- const [entered,setEntered]=useState(Boolean(editor||preview));
+ const [opened,setOpened]=useState(Boolean(editor||preview||skipOpening));
+ const [entered,setEntered]=useState(Boolean(editor||preview||skipOpening));
  function openGate(){
   if(opened)return;
   setOpened(true);
@@ -59,13 +62,13 @@ function RaabtaFull({data,photo,editor,preview}:InvitationProps){
   if(audio)void audio.play().catch(()=>{});
  }
  useEffect(()=>{
-  if(editor||preview||entered)return;
+  if(editor||preview||skipOpening||entered)return;
   const body=document.body,html=document.documentElement;
   const oldBody=body.style.overflow,oldHtml=html.style.overflow;
   body.style.overflow="hidden";html.style.overflow="hidden";
   const timer=opened?window.setTimeout(()=>setEntered(true),window.matchMedia("(prefers-reduced-motion: reduce)").matches?0:2800):undefined;
   return ()=>{body.style.overflow=oldBody;html.style.overflow=oldHtml;if(timer!==undefined)window.clearTimeout(timer);};
- },[opened,entered,Boolean(editor),preview]);
+ },[opened,entered,Boolean(editor),preview,skipOpening]);
  const canvas=useRef<HTMLCanvasElement>(null),scratch=useRef<HTMLDivElement>(null),confetti=useRef<HTMLDivElement>(null);
  const hidden=(data.hiddenSections??"").split(",");
  const [seconds,setSeconds]=useState<number|null>(null);
@@ -96,17 +99,17 @@ function RaabtaFull({data,photo,editor,preview}:InvitationProps){
  const field=(key:keyof typeof data,value:string,type="text",display?:string)=>editor?<InlineField value={value} display={display} type={type} label={type==="date"?t.date:type==="time"?t.time:value} onChange={value=>editor.update(key,value)}/>:display??value;
  const events=data.eventType==="both"?[{title:t.morning,date:data.morningDate,time:data.morningTime,venue:data.morningVenue,address:data.morningAddress},{title:t.wedding,date:data.date,time:data.time,venue:data.venue,address:data.address}]:[{title:data.eventType==="morning"?t.morning:t.wedding,date:eventDate,time:eventTime,venue:data.eventType==="morning"?data.morningVenue:data.venue,address:data.eventType==="morning"?data.morningAddress:data.address}];
  const parts=seconds===null?["—","—","—","—"]:[Math.floor(seconds/86400),Math.floor(seconds/3600)%24,Math.floor(seconds/60)%60,seconds%60];
- const programs=data.program.split("\n").map(v=>v.trim()).filter(Boolean);
+ const programs=(data.program||sample.program).split("\n").map(v=>v.trim()).filter(Boolean);
  const colors={"--inv-paper":"#faf7f0","--inv-ink":"#1a2340","--inv-accent":"#ad7d1f"} as CSSProperties;
  return <div ref={root} className={`raabta-native${editor?" is-editing":""}`} data-gate={entered?"entered":opened?"opening":"closed"} lang={locale==="tj"?"tg":locale}>
   <section data-editor-section="cover" className="raabta-opening">
    {!editor&&!preview&&!entered&&<button type="button" className={`gate-overlay${opened?" gate-open gate-revealed":""}`} aria-hidden={opened||undefined} tabIndex={opened?-1:0} aria-label={t.enter} onPointerUp={event=>{if(event.button===0)openGate();}} onClick={openGate}>
     <span className="gate-leaf gate-leaf-left"/><span className="gate-leaf gate-leaf-right"/><span className="gate-flare"/>
-    <span className="gate-cta"><span className="gate-cta-bismillah" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span><span className="gate-cta-names"><span className="gate-cta-groom">{first}</span><span className="gate-cta-amp">{t.join}</span><span className="gate-cta-bride">{second}</span></span><span className="gate-cta-tap">{t.enter}</span></span>
+    <span className="gate-cta"><span className="gate-cta-bismillah" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</span><span className="gate-cta-names"><span className="gate-cta-groom">{first}</span><span className="gate-cta-amp">{t.join}</span><span className="gate-cta-bride">{second}</span></span>{guest&&<span className="gate-personal-name">{guest.name}</span>}<span className="gate-cta-tap">{t.enter}</span></span>
    </button>}
    <div className="scene scene-hero"><img src={ASSETS+"mosque-scene.webp"} alt="" className="scene-hero-mosque" fetchPriority="high"/>
     <div className="stars" aria-hidden="true">{[6,16,27,38,49,59,69,78,87].map((left,i)=><span key={left} className={`star star-${["a","b","c"][i%3]}`} style={{left:left+"%",width:10+i%5,animationDelay:`-${i}s`}}/>)}</div>
-    <div className="scene-hero-content"><img src={ASSETS+"crescent-moon.webp"} alt="" className="scene-hero-moon"/><div className="hero-names-row"><Copy field="hero.groom" className="hero-name">{first}</Copy><span className="hero-join">{t.join}</span><Copy field="hero.bride" className="hero-name">{second}</Copy></div><div className="hero-rule"/><Copy field="hero.blessing" as="div" className="hero-blessing">{t.honour}</Copy></div>
+    <div className="scene-hero-content"><img src={ASSETS+"crescent-moon.webp"} alt="" className="scene-hero-moon"/><div className="hero-names-row"><Copy field="hero.groom" className="hero-name">{first}</Copy><span className="hero-join">{t.join}</span><Copy field="hero.bride" className="hero-name">{second}</Copy></div><div className="hero-rule"/><Copy field="hero.blessing" as="div" className="hero-blessing">{t.honour}</Copy><GuestGreeting guest={guest} locale={locale}/></div>
    </div>{editor?.controls?.cover}
   </section>
   {sections("story",t.blessing,<div className="scene scene-blessing scene-crowned"><div className="scene-inner"><div className="vessel reveal"><Corners/><img src={ASSETS+"bismillah-medallion.webp"} alt="Бисмиллоҳ" className="scene-medallion" loading="lazy"/><Copy as="div" field="blessing.text" className="invite-blessing">{t.blessing}</Copy><div className="invite-person-block"><Copy as="div" field="blessing.groom" className="invite-person-name">{first}</Copy></div><div className="invite-divider"/><div className="invite-person-block"><Copy as="div" field="blessing.bride" className="invite-person-name">{second}</Copy></div></div></div></div>)}
@@ -114,11 +117,12 @@ function RaabtaFull({data,photo,editor,preview}:InvitationProps){
    {eventDate&&<><div className="scratch-date-wrap reveal" ref={scratch}><div className="scratch-date-box"><span className="scratch-date-text">{field(data.eventType==="morning"?"morningDate":"date",eventDate,"date",pretty(eventDate))}</span>{!editor&&<canvas ref={canvas} className="scratch-date-canvas" aria-hidden="true"/>}</div>{!editor&&<button type="button" className="scratch-date-fallback" onClick={fallbackReveal}>{t.scratch}</button>}</div><div ref={confetti} className="confetti-burst" aria-hidden="true"/></>}
   </div></div><div className="functions-run">{events.map((event,i)=>{const morning=data.eventType==="morning"||(data.eventType==="both"&&i===0);return <div className="scene scene-function" key={event.title}><div className="function-card reveal"><Corners/><h3 className="fn-name">{event.title}</h3><div className="invite-divider fn-divider"/>{event.date&&<p className="fn-row">{pretty(event.date)}</p>}<p className="fn-row">{field(morning?"morningTime":"time",event.time,"time")}</p><p className="fn-row">{field(morning?"morningVenue":"venue",event.venue||t.venue)}<br/>{field(morning?"morningAddress":"address",event.address)}</p>{event.venue&&<a className="fn-map" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue+" "+event.address)}`}>{t.route}</a>}</div></div>;})}</div></>)}
   {sections("welcome",t.message,<div className="scene scene-couple"><div className="scene-inner"><Copy as="h2" field="family.title" className="meet-title reveal">{t.message}</Copy><div className="invite-divider"/><Copy as="p" field="family.message" className="meet-story reveal" long>{data.message||t.family}</Copy></div></div>)}
-  {photo&&sections("photo",t.photo,<div className="scene scene-invite"><div className="scene-inner"><Copy as="h2" field="photo.title" className="meet-title reveal">{t.photo}</Copy><div className="raabta-photo reveal"><img src={photo} alt={t.photo} loading="lazy"/><img src={ASSETS+"photo-frame.webp"} className="raabta-photo-frame" alt="" loading="lazy"/></div></div></div>)}
+  {(photo||editor)&&sections("photo",t.photo,<div className="scene scene-invite"><div className="scene-inner"><Copy as="h2" field="photo.title" className="meet-title reveal">{t.photo}</Copy>{editor?.photoUpload}<div className="raabta-photo reveal"><img src={photo||"/images/demo-couple.webp"} alt={t.photo} loading="lazy"/><img src={ASSETS+"photo-frame.webp"} className="raabta-photo-frame" alt="" loading="lazy"/></div></div></div>)}
   <div className="lantern-divider" aria-hidden="true"><div className="hang-row">{[0,1,2].map(i=><div key={i} className={`hang${i===1?" hang-mid":""}`} style={{"--drop":i===1?"36px":"8px","--dur":(4+i*.6)+"s","--delay":(-i)+"s","--tilt":"5deg","--w":i===1?"84px":"62px"} as CSSProperties}><img src={ASSETS+"lantern-float.webp"} className="hang-img" alt="" loading="lazy"/><span className="hang-glow"/></div>)}</div></div>
   {(editor||programs.length>0)&&sections("program",t.program,<div className="scene scene-things scene-crowned"><div className="scene-inner"><div className="vessel reveal"><Corners/><Copy as="h2" field="program.title" className="things-title">{t.program}</Copy><div className="invite-divider"/>{programs.map((line,i)=>{const [time,...rest]=line.split(/\s+[—-]\s+/);return <div className="thing-row" key={i}><div className="thing-sub">{rest.length?time:""}</div><Copy as="div" field={"program.item"+i} className="thing-val">{rest.length?rest.join(" — "):line}</Copy></div>;})}</div></div></div>)}
   {Number.isFinite(starts)&&sections("countdown",t.countdown,<div className="scene scene-countdown"><div className="scene-inner"><Copy as="h2" field="countdown.title" className="countdown-title reveal">{t.countdown}</Copy><div className="countdown-date">{pretty(eventDate)}</div><div className="countdown-timer" role="timer">{t.units.map((label,i)=><div className="countdown-box" key={label}><span className="countdown-val">{typeof parts[i]==="number"?String(parts[i]).padStart(2,"0"):parts[i]}</span><span className="countdown-lbl">{label}</span></div>)}</div></div></div>)}
-  {sections("closing",t.waiting,<div className="scene scene-rsvp"><div className="scene-inner"><Copy as="h2" field="closing.title" className="rsvp-title reveal">{t.waiting}</Copy><div className="invite-divider"/><Copy as="p" field="closing.text" className="raabta-closing-copy reveal">{t.closing}</Copy><div className="invite-person reveal">{first} {t.join} {second}</div><div className="footer-ending"><img src={ASSETS+"footer-ornament.webp"} className="footer-ornament" alt="" loading="lazy"/><small>WOW PRINT · BAZMNOMA</small></div></div></div>)}
-  {!preview&&<InvitationMusic locale={locale} style={colors} src="/templates/raabta/music.mp3" volume={1}/>}
+  {rsvp}
+  {sections("closing",t.waiting,<div className="scene scene-rsvp"><div className="scene-inner"><Copy as="h2" field="closing.title" className="rsvp-title reveal">{t.waiting}</Copy><div className="invite-divider"/><Copy as="p" field="closing.text" className="raabta-closing-copy reveal">{t.closing}</Copy><div className="invite-person reveal">{first} {t.join} {second}</div><div className="footer-ending"><img src={ASSETS+"footer-ornament.webp"} className="footer-ornament" alt="" loading="lazy"/><InvitationCredit/></div></div></div>)}
+  {!preview&&sectionVisible(data,"music")&&<InvitationMusic locale={locale} style={colors} src="/templates/raabta/music.mp3" volume={1}/>}
  </div>;
 }

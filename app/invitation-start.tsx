@@ -43,7 +43,7 @@ export function InvitationStart({templateName,onContinue,children,className}:{te
      <h2 id="start-heading">Аз чӣ оғоз мекунем?</h2>
      <button type="button" className="start-close" aria-label="Пӯшидан" onClick={()=>dialog.current?.close()}>×</button>
     </div>
-    <p id="start-summary">Қолаби «{templateName}». Маълумоти асосиро ворид кунед. Ҷузъиёти дигарро дар бахши таҳрир илова мекунед ва ҳамон ҷо мебинед, ки даъватнома ба меҳмонон чӣ гуна намоён мешавад.</p>
+    <p id="start-summary">Даъватномаи «{templateName}». Маълумоти асосиро ворид кунед. Ҷузъиёти дигарро дар бахши таҳрир илова мекунед ва ҳамон ҷо мебинед, ки даъватнома ба меҳмонон чӣ гуна намоён мешавад.</p>
     <form onSubmit={submit}>
      <div className="start-fields">
       <label>Номи домод<input name="first" placeholder={sample.first} required maxLength={45} autoFocus onInput={event=>event.currentTarget.setCustomValidity("")}/></label>

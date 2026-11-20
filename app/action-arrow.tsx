@@ -1,0 +1,1 @@
+export function ActionArrow(){return <svg className="action-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M5 15 15 5M5 5h10v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}

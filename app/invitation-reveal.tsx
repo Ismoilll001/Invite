@@ -36,6 +36,12 @@ export function InvitationReveal({sectionState,enabled=true}:{sectionState:strin
    }
   },{rootMargin:`0px 0px -${Math.round(window.innerHeight*.16)}px 0px`,threshold:0});
   const selector=[
+   ".royal-section-heading",
+   ".royal-portrait",
+   ".royal-section > h2",
+   ".royal-section > p",
+   ".royal-details-grid > article",
+   ".royal-timeline > article",
    ".invitation-section > .invitation-section-kicker",
    ".invitation-section > h3",
    ".invitation-section > .editable-invitation-line",

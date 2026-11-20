@@ -2,7 +2,7 @@ import type {Metadata} from "next";
 import {getChatGPTUser} from "../chatgpt-auth";
 import {Studio} from "../studio";
 
-export const metadata:Metadata={title:"Қолабҳо · BAZMNOMA"};
+export const metadata:Metadata={title:"Даъватномаҳо · BAZMNOMA"};
 export const dynamic="force-dynamic";
 
 export default async function TemplatesPage(){

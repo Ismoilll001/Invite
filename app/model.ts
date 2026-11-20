@@ -3,13 +3,14 @@ export const allTemplates = [
  {id:"olive", nameTj:"Субҳи сабз",nameRu:"Оливковое утро",event:"morning",tier:"standard",price:100,detailTj:"Барои оши наҳор",detailRu:"Для оши наҳор",description:"Рангҳои ороми зайтунӣ ва фазои сабуки саҳарӣ."},
  {id:"gold", nameTj:"Номаи заррин",nameRu:"Золотое письмо",event:"both",tier:"premium",price:150,detailTj:"Тӯй ва оши наҳор",detailRu:"Свадьба и оши наҳор",description:"Заминаи айвори, ҷузъиёти заррин ва ду барномаи ҷашн."},
  {id:"raabta",nameTj:"Ҳилоли заррин",nameRu:"Золотой полумесяц",event:"wedding",tier:"premium",price:150,detailTj:"Даъватномаи мусалмонӣ",detailRu:"Мусульманское приглашение",description:"Гунбазҳои кабуд, нақшҳои заррин ва чароғҳои фурӯзон."},
+ {id:"royal",nameTj:"Шоми заррин",nameRu:"Золотой вечер",event:"wedding",tier:"premium",price:150,detailTj:"Бордо ва тилло",detailRu:"Бордо и золото",description:"Бордо, ҳошияҳои заррин ва фазои шоми идона."},
 ] as const;
 // Retired designs stay readable for existing orders, but are not offered in the catalog.
 export const templates=allTemplates.filter(template=>!["olive","gold"].includes(template.id));
 export const sample={template:"rose",first:"Сатторҷон",second:"Мадинахон",date:"2027-06-12",time:"18:00",venue:"Тарабхонаи «Навгилем»",address:"Исфара, Тоҷикистон",message:"",locale:"tj",slug:"sattorjon-madinakhon",eventType:"wedding",morningDate:"2027-06-12",morningTime:"08:00",morningVenue:"Ҳавлии домод",morningAddress:"Исфара, Тоҷикистон",program:"18:00 — Пешвози меҳмонон\n19:00 — Оғози базм",guests:""};
 export const empty={...sample,first:"",second:"",date:"",time:"",venue:"",address:"",slug:"",morningDate:"",morningTime:"",morningVenue:"",morningAddress:"",program:"",guests:""};
-export const optionalSections = ["countdown","welcome","photo","story","details","program","closing"] as const;
-export type Invite=typeof sample & {palette?: string; hiddenSections?: string; textOverrides?: string};
+export const optionalSections = ["countdown","welcome","photo","story","details","program","closing","rsvp","wishes","gifts","music"] as const;
+export type Invite=typeof sample & {palette?: string; hiddenSections?: string; textOverrides?: string; giftDetails?: string};
 export function invitationTextOverrides(value?: string): Record<string,string> {
  if(!value)return {};
  try {
@@ -35,6 +36,7 @@ export const palettes = [
 ] as const;
 
 export function palettesFor(template:string){
+ if(template==="royal")return [{id:"royal",label:"Бордо ва тилло",background:"#3b0d1c",ink:"#fff5e3",accent:"#d9b976"}];
  if(template==="raabta")return [{id:"raabta",label:"Тиллои шаб",background:"#faf7f0",ink:"#1a2340",accent:"#ad7d1f"}];
  const defaultId=template==="rose"?"blush":template==="olive"?"sage":"ivory";
  return [
@@ -53,3 +55,10 @@ export type Status=keyof typeof statuses;
 export type Order={id:string; data:Invite; status:Status; note:string|null; photo:boolean; receipt:boolean; demo:boolean};
 const reserved=new Set(["www","invite","admin","mail","api","cdn","app","ftp","demo","support","shop"]);
 export function validSlug(slug:string){return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)&&slug.length>=3&&slug.length<=50&&!reserved.has(slug);}
+
+export type GiftDetails={groom:{name:string;bank:string;account:string;url:string};bride:{name:string;bank:string;account:string;url:string}};
+export function giftDetails(value?:string):GiftDetails {
+ const blank={name:"",bank:"",account:"",url:""};
+ try{const raw=JSON.parse(value||"{}");const read=(item:unknown)=>{const v=item&&typeof item==="object"?item as Record<string,unknown>:{};return Object.fromEntries(Object.keys(blank).map(k=>[k,typeof v[k]==="string"?v[k].slice(0,k==="url"?500:120):""])) as typeof blank;};return {groom:read(raw.groom),bride:read(raw.bride)};}catch{return {groom:{...blank},bride:{...blank}};}
+}
+export function sectionVisible(data:Invite,id:string){return !(data.hiddenSections||"").split(",").includes(id);}

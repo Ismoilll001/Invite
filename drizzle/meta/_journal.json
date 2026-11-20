@@ -15,6 +15,20 @@
       "when": 1795068065226,
       "tag": "0001_admin_access",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795147944235,
+      "tag": "0002_famous_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795163589939,
+      "tag": "0003_workable_quicksilver",
+      "breakpoints": true
     }
   ]
 }

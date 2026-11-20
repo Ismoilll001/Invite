@@ -17,15 +17,15 @@ function Butterfly(){
  </svg>;
 }
 
-export function SiteAtmosphere(){
+export function SiteAtmosphere({showButterflies=true}:{showButterflies?:boolean}){
  const butterflies=useRef<(HTMLDivElement|null)[]>([]);
  useEffect(()=>{
+  if(!showButterflies)return;
   const reduced=matchMedia("(prefers-reduced-motion: reduce)");
-  if(reduced.matches)return;
-  let frame=0,previous=0,active=true;
+  let frame=0,previous=0,active=!reduced.matches;
   const target={x:innerWidth*.78,y:innerHeight*.32,last:0};
   const birds=Array.from({length:3},(_,i)=>({x:innerWidth*(.72+i*.06),y:innerHeight*(.35+i*.12),angle:0}));
-  function move(event:PointerEvent){if(event.pointerType==="touch")return;target.x=event.clientX;target.y=event.clientY;target.last=performance.now();}
+  function move(event:PointerEvent){target.x=event.clientX;target.y=event.clientY;target.last=performance.now();}
   function animate(now:number){
    if(!active)return;
    const delta=Math.min((now-(previous||now))/1000,.05);previous=now;
@@ -48,13 +48,14 @@ export function SiteAtmosphere(){
   function visibility(){cancelAnimationFrame(frame);previous=0;if(!document.hidden&&active)frame=requestAnimationFrame(animate);}
   function preference(){active=!reduced.matches;cancelAnimationFrame(frame);previous=0;if(active&&!document.hidden)frame=requestAnimationFrame(animate);}
   window.addEventListener("pointermove",move,{passive:true});
+  window.addEventListener("pointerdown",move,{passive:true});
   document.addEventListener("visibilitychange",visibility);
   reduced.addEventListener("change",preference);
-  frame=requestAnimationFrame(animate);
-  return()=>{active=false;cancelAnimationFrame(frame);window.removeEventListener("pointermove",move);document.removeEventListener("visibilitychange",visibility);reduced.removeEventListener("change",preference);};
- },[]);
+  if(active)frame=requestAnimationFrame(animate);
+  return()=>{active=false;cancelAnimationFrame(frame);window.removeEventListener("pointermove",move);window.removeEventListener("pointerdown",move);document.removeEventListener("visibilitychange",visibility);reduced.removeEventListener("change",preference);};
+ },[showButterflies]);
  return <div className="site-atmosphere" aria-hidden="true">
   <div className="site-particles">{particles.map((style,i)=><i key={i} className={i<64?"particle-floating":"particle-falling"} style={style}/>)}</div>
-  <div className="site-butterflies">{[0,1,2].map(i=><div key={i} ref={element=>{butterflies.current[i]=element;}} className={`site-butterfly butterfly-${i+1}`}><Butterfly/></div>)}</div>
+  {showButterflies&&<div className="site-butterflies">{[0,1,2].map(i=><div key={i} ref={element=>{butterflies.current[i]=element;}} className={`site-butterfly butterfly-${i+1}`}><Butterfly/></div>)}</div>}
  </div>;
 }

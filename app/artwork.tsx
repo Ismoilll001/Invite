@@ -1,3 +1,4 @@
+import {ActionArrow} from "./action-arrow";
 import {invitationDate} from "./invitation-date";
 import {sample,type Invite} from "./model";
 export function Artwork({data,compact,photo}:{data:Invite;compact?:boolean;photo?:string}){
@@ -10,6 +11,6 @@ export function Artwork({data,compact,photo}:{data:Invite;compact?:boolean;photo
   <h2>{data.first||sample.first}<i>&amp;</i>{data.second||sample.second}</h2>
   <p className="date">{date}{data.time?" · "+data.time:""}</p>
   {!compact&&<>{photo&&<img src={photo} alt={text.photo}/>}<hr/><p className="message">{data.message||text.message}</p>
-   <strong className="venue">{data.venue||sample.venue}</strong>{data.address&&<><span>{data.address}</span><a className="link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.venue+" "+data.address)}`} target="_blank" rel="noreferrer">{text.map} ↗</a></>}</>}
+   <strong className="venue">{data.venue||sample.venue}</strong>{data.address&&<><span>{data.address}</span><a className="link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.venue+" "+data.address)}`} target="_blank" rel="noreferrer">{text.map} <ActionArrow/></a></>}</>}
  </article>;
 }

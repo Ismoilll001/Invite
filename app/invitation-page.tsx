@@ -1,3 +1,7 @@
+import {InvitationCredit} from "./invitation-credit";
+import {ActionArrow} from "./action-arrow";
+import {InvitationExtras,GuestGreeting,type GuestIdentity} from "./invitation-extras";
+import {RoyalInvitation} from "./royal/royal-invitation";
 import {RaabtaInvitation} from "./raabta/raabta-invitation";
 import type {CSSProperties,ReactNode} from "react";
 import {invitationDate} from "./invitation-date";
@@ -5,17 +9,22 @@ import {InvitationCountdown} from "./invitation-countdown";
 import {InvitationReveal} from "./invitation-reveal";
 import {InvitationMusic} from "./invitation-music";
 import {InlineField} from "./invitation-inline-field";
-import {invitationTextOverrides,paletteFor,sample,type Invite} from "./model";
+import {invitationTextOverrides,sectionVisible,paletteFor,sample,type Invite} from "./model";
 
 type EditTarget="cover"|"message"|"photo"|"location"|"program";
-export type InvitationProps={data:Invite;photo?:string;preview?:boolean;coverOnly?:boolean;editor?:{controls?:Record<string,ReactNode>;onEdit:(target:EditTarget)=>void;setSectionHidden:(section:string,hide:boolean)=>void;update:(key:keyof Invite,value:string)=>void}};
+export type InvitationProps={data:Invite;photo?:string;preview?:boolean;skipOpening?:boolean;coverOnly?:boolean;rsvpSlug?:string;guest?:GuestIdentity;rsvp?:ReactNode;editor?:{photoUpload?:ReactNode;controls?:Record<string,ReactNode>;onEdit:(target:EditTarget)=>void;setSectionHidden:(section:string,hide:boolean)=>void;update:(key:keyof Invite,value:string)=>void}};
 
 function calendarTime(value:Date){
  return value.toISOString().replaceAll("-","").replaceAll(":","").replace(".000","");
 }
 
-export function InvitationPage({data,photo,preview=false,coverOnly=false,editor}:InvitationProps){
- if(data.template==="raabta")return <RaabtaInvitation data={data} photo={photo} preview={preview} coverOnly={coverOnly} editor={editor}/>;
+export function InvitationPage(props:InvitationProps){
+ const rsvp=!props.coverOnly&&!props.preview&&!props.editor?<InvitationExtras data={props.data} slug={props.rsvpSlug} guest={props.guest}/>:undefined;
+ return <InvitationDesign {...props} rsvp={rsvp}/>;
+}
+function InvitationDesign({data,photo,preview=false,coverOnly=false,editor,rsvp,guest,skipOpening}:InvitationProps){
+ if(data.template==="royal")return <RoyalInvitation data={data} photo={photo} preview={preview} coverOnly={coverOnly} editor={editor} rsvp={rsvp} guest={guest} skipOpening={skipOpening}/>;
+ if(data.template==="raabta")return <RaabtaInvitation data={data} photo={photo} preview={preview} coverOnly={coverOnly} editor={editor} rsvp={rsvp} guest={guest} skipOpening={skipOpening}/>;
  const locale=["ru","tj","uz"].includes(data.locale)?data.locale:"tj";
  const text=locale==="tj"?{
   venue:"Ҷой баъдтар муайян мешавад",message:"Бо камоли эҳтиром Шуморо ба ҷашни арӯсии худ даъват мекунем.",event:"Тӯй",kicker:"ДАЪВАТНОМАИ ТӮЙ",joiner:"ва",photo:"Акси арӯсу домод",location:"Ҷойи баргузорӣ",morning:"Оши наҳор",wedding:"Тӯйи арӯсӣ",program:"Барномаи ҷашн",map:"Кушодан дар Google",yandex:"Кушодан дар Яндекс",calendar:"Ба тақвим",lang:"tg",welcomeKicker:"БАРОИ МЕҲМОНОНИ АЗИЗ",welcomeTitle:"Меҳмонони гиромӣ!",welcomeText:"Мо аз самими дил мехоҳем, ки Шумо дар рӯзи муҳимтарини зиндагии мо ҳамроҳамон бошед.",photoKicker:"ЛАҲЗАИ МО",photoTitle:"Як хотираи дӯстдошта",photoText:"Ин танҳо оғози қиссаест, ки мехоҳем бо наздиконамон идома диҳем.",storyKicker:"ҚИССАИ МО",storyTitle:"Ҳамааш чӣ гуна оғоз ёфт",story:[["Баҳори 2022","Вохӯрии аввал","Як вохӯрии ногаҳонӣ ба суҳбате табдил ёфт, ки намехостем анҷом ёбад."],["Тобистони 2025","Қадами муҳим","Дар як шоми ором мо қарор додем, ки ҳамеша паҳлуи ҳам бошем."],["Ба наздикӣ","Рӯзи мо","Акнун вақти он расидааст, ки ин хушбахтиро бо Шумо тақсим кунем."]],detailsKicker:"МАЪЛУМОТИ ҶАШН",detailsTitle:"Сана ва макони вохӯрӣ",when:"Кай",where:"Дар куҷо",programKicker:"БАРНОМА",programTitle:"Нақшаи рӯзи ҷашн",programItems:[["18:00","Пешвози меҳмонон","Шуморо бо табассум ва фазои гарм истиқбол мекунем."],["19:00","Оғози маросим","Лаҳзаи асосӣ, ки ҳамаи моро гирд меорад."],["20:00","Зиёфати идона","Таомҳои болаззат, суханҳои самимӣ ва шодмонӣ."],["22:00","Рақсу суруд","Шомро бо мусиқӣ ва кайфияти хуб идома медиҳем."]],closingKicker:"БО МУҲАББАТ",closingTitle:"Шуморо интизорем!",closingText:"Ҳузури Шумо ин рӯзро барои мо боз ҳам хотирмонтар мегардонад.",signature:"Бо муҳаббат",
@@ -105,7 +114,7 @@ export function InvitationPage({data,photo,preview=false,coverOnly=false,editor}
    <span className="invitation-spark spark-three" aria-hidden="true">✦</span>
 
 
-   <div className="editable-invitation-line invitation-names"><h2><span className="invitation-name-part">{field("first",first,editLabel+" · "+first,45)}</span><i>{editableText("joiner",text.joiner)}</i><span className="invitation-name-part">{field("second",second,editLabel+" · "+second,45)}</span></h2></div>
+   <GuestGreeting guest={guest} locale={locale}/><div className="editable-invitation-line invitation-names"><h2><span className="invitation-name-part">{field("first",first,editLabel+" · "+first,45)}</span><i>{editableText("joiner",text.joiner)}</i><span className="invitation-name-part">{field("second",second,editLabel+" · "+second,45)}</span></h2></div>
    {(editor||(eventDate&&validDate))&&<div className="editable-invitation-line">
     <p className="invitation-date invitation-cover-date">{editor
      ? <InlineField type="date" value={eventDate} display={eventDate&&validDate?dateText:locale==="ru"?"Указать дату":locale==="uz"?"Санани киритинг":"Санаро ворид кунед"}
@@ -122,22 +131,19 @@ export function InvitationPage({data,photo,preview=false,coverOnly=false,editor}
   {!coverOnly&&<>
   {section("countdown",locale==="ru"?"Обратный отсчёт":locale==="uz"?"Саноқ":"Ҳисоби баръакс",!preview&&starts&&Number.isFinite(+starts)&&<InvitationCountdown startsAt={+starts} locale={locale}/>)}
   {section("welcome",text.welcomeTitle,<section className="invitation-section invitation-welcome"><p className="invitation-section-kicker">{editableText("welcomeKicker",text.welcomeKicker)}</p><h3>{editableText("welcomeTitle",text.welcomeTitle)}</h3><div className="editable-invitation-line"><p>{field("message",message,editLabel,450,true)}</p></div></section>)}
-  {section("photo",text.photo,photo&&<section className="invitation-section invitation-photo-block editable-invitation-section"><div className="invitation-section-heading"><p className="invitation-section-kicker">{editableText("photoKicker",text.photoKicker)}</p><h3>{editableText("photoTitle",text.photoTitle)}</h3><p>{editableText("photoText",text.photoText,true)}</p></div><div className="invitation-photo-stack"><img src={photo} alt={text.photo} loading="lazy"/></div>{editor&&<EditButton label={locale==="ru"?"Изменить фотографию":"Иваз кардани акс"} onClick={()=>editor.onEdit("photo")}/>}</section>)}
+  {section("photo",text.photo,photo&&<section className="invitation-section invitation-photo-block editable-invitation-section"><div className="invitation-section-heading"><p className="invitation-section-kicker">{editableText("photoKicker",text.photoKicker)}</p><h3>{editableText("photoTitle",text.photoTitle)}</h3><p>{editableText("photoText",text.photoText,true)}</p></div><div className="invitation-photo-editor">{editor?.photoUpload}<div className="invitation-photo-stack"><img src={photo} alt={text.photo} loading="lazy"/></div></div></section>)}
   {section("story",text.storyKicker,<section className="invitation-section invitation-story"><p className="invitation-section-kicker">{editableText("storyKicker",text.storyKicker)}</p><h3>{editableText("storyTitle",text.storyTitle)}</h3><div className="invitation-story-grid">{text.story.map(([season,title,description],index)=><article key={season}><span>0{index+1}</span><small>{editableText("story.season"+index,season)}</small><h4>{editableText("story.title"+index,title)}</h4><p>{editableText("story.body"+index,description,true)}</p></article>)}</div></section>)}
   {data.eventType==="both"&&<section className="invitation-section dual-events"><h3>{editableText("events.title",locale==="tj"?"Ду маросим":locale==="uz"?"Икки маросим":"Два события")}</h3><div className="event-cards"><EventCard title={editableText("events.morning",text.morning)} date={data.morningDate} time={data.morningTime} venue={data.morningVenue} address={data.morningAddress} locale={locale}/><EventCard title={editableText("events.wedding",text.wedding)} date={data.date} time={data.time} venue={data.venue} address={data.address} locale={locale}/></div></section>}
   {section("details",text.detailsTitle,<section className="invitation-section invitation-details editable-invitation-section"><p className="invitation-section-kicker">{editableText("detailsKicker",text.detailsKicker)}</p><h3>{editableText("detailsTitle",text.detailsTitle)}</h3><div className="invitation-details-grid"><article><small>{editableText("when",text.when)}</small><strong>{editor?field(morningOnly?"morningDate":"date",date,editLabel+" · "+text.when,10,false,"date"):dateText}</strong><p>{field(morningOnly?"morningTime":"time",time,editLabel+" · "+time,5,false,"time")}</p></article><article><small>{editableText("where",text.where)}</small><strong>{field(morningOnly?"morningVenue":"venue",venue,editLabel+" · "+text.where,100)}</strong>{(editor||address)&&<p>{field(morningOnly?"morningAddress":"address",address,editLabel+" · "+text.location,160)}</p>}</article></div>{!preview&&<div className="invitation-actions">
-    {address&&editableText("actions.map",text.map,false,label=><a href={`https://www.google.com/maps/search/?${mapQuery}`} target="_blank" rel="noopener noreferrer">{label} ↗</a>)}
-    {address&&editableText("actions.yandex",text.yandex,false,label=><a href={`https://yandex.com/maps/?text=${encodeURIComponent(place)}`} target="_blank" rel="noopener noreferrer">{label} ↗</a>)}
-    {calendar&&editableText("actions.calendar",text.calendar,false,label=><a href={`https://calendar.google.com/calendar/render?${calendar}`} target="_blank" rel="noopener noreferrer">{label} ↗</a>)}
+    {address&&editableText("actions.map",text.map,false,label=><a href={`https://www.google.com/maps/search/?${mapQuery}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
+    {address&&editableText("actions.yandex",text.yandex,false,label=><a href={`https://yandex.com/maps/?text=${encodeURIComponent(place)}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
+    {calendar&&editableText("actions.calendar",text.calendar,false,label=><a href={`https://calendar.google.com/calendar/render?${calendar}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
    </div>}</section>)}
   {section("program",text.programTitle,<section className="invitation-section invitation-program editable-invitation-section"><p className="invitation-section-kicker">{editableText("programKicker",text.programKicker)}</p><h3>{editableText("programTitle",text.programTitle)}</h3><div className="invitation-program-grid">{programItems.map(([itemTime,title,description],index)=><article key={`${itemTime}-${index}`}><time>{editableText("program.time"+index,itemTime)}</time><div><h4>{editableText("program.title"+index,title)}</h4>{(editor||description)&&<p>{editableText("program.body"+index,description,true)}</p>}</div></article>)}</div></section>)}
-  {section("closing",text.closingTitle,<section className="invitation-section invitation-closing"><p className="invitation-section-kicker">{editableText("closingKicker",text.closingKicker)}</p><h3>{editableText("closingTitle",text.closingTitle)}</h3><p>{editableText("closingText",text.closingText,true)}</p><span>{editableText("signature",text.signature)}</span><strong>{editableText("closing.names",first+" "+(overrides.joiner??text.joiner)+" "+second)}</strong><small>{editableText("closing.brand","BAZMNOMA")}</small></section>)}
+  {rsvp}
+  {section("closing",text.closingTitle,<section className="invitation-section invitation-closing"><p className="invitation-section-kicker">{editableText("closingKicker",text.closingKicker)}</p><h3>{editableText("closingTitle",text.closingTitle)}</h3><p>{editableText("closingText",text.closingText,true)}</p><span>{editableText("signature",text.signature)}</span><strong>{editableText("closing.names",first+" "+(overrides.joiner??text.joiner)+" "+second)}</strong><InvitationCredit/></section>)}
   </>}
- </article>{data.template==="rose"&&!preview&&!coverOnly&&<InvitationMusic locale={locale} style={colors}/>}</>;
-}
-
-function EditButton({label,onClick}:{label:string;onClick:()=>void}){
- return <button type="button" className="invitation-edit-button" aria-label={label} title={label} onClick={onClick}>✎</button>;
+ </article>{data.template==="rose"&&!preview&&!coverOnly&&sectionVisible(data,"music")&&<InvitationMusic locale={locale} style={colors}/>}</>;
 }
 
 function EventCard({title,date,time,venue,address,locale}:{title:ReactNode;date:string;time:string;venue:string;address:string;locale:string}){

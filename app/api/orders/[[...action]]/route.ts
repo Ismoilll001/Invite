@@ -1,8 +1,8 @@
-import {and,desc,eq} from "drizzle-orm";
+import {and,desc,eq,inArray} from "drizzle-orm";
 import {getDb} from "@/db";
 import {orders} from "@/db/schema";
 import {getChatGPTUser} from "@/app/chatgpt-auth";
-import {allTemplates,invitationTextOverrides,optionalSections,palettesFor,validSlug,type Invite,type Status} from "@/app/model";
+import {allTemplates,giftDetails,invitationTextOverrides,optionalSections,palettesFor,validSlug,type Invite,type Status} from "@/app/model";
 import {bucket,published,serialize} from "@/app/store";
 type Context={params:Promise<{action?:string[]}>};
 const limit=5*1024*1024;
@@ -33,13 +33,19 @@ function parse(raw:unknown,submit:boolean):Invite|null{
   data.palette=palette.id;
  }
  if(values.hiddenSections!==undefined){
-  if(typeof values.hiddenSections!=="string"||values.hiddenSections.length>70)return null;
+  if(typeof values.hiddenSections!=="string"||values.hiddenSections.length>140)return null;
   const hidden=values.hiddenSections.split(",");
   data.hiddenSections=optionalSections.filter(section=>hidden.includes(section)).join(",");
  }
  if(values.textOverrides!==undefined){
   if(typeof values.textOverrides!=="string"||values.textOverrides.length>40000)return null;
   data.textOverrides=JSON.stringify(invitationTextOverrides(values.textOverrides));
+ }
+ if(values.giftDetails!==undefined){
+  if(typeof values.giftDetails!=="string"||values.giftDetails.length>3000)return null;
+  const gifts=giftDetails(values.giftDetails);
+  for(const gift of Object.values(gifts))if(gift.url){try{const url=new URL(gift.url);if(url.protocol!=="https:"||url.username||url.password)return null;}catch{return null;}}
+  data.giftDetails=JSON.stringify(gifts);
  }
  return data;
 }
@@ -68,6 +74,17 @@ export async function GET(request:Request,{params}:Context){
  const user=await getChatGPTUser();
  if(!user)return denied();
  const db=getDb();
+ if(id==="suggestions"){
+  const search=new URL(request.url).searchParams;
+  const base=search.get("base")||"",reverse=search.get("reverse")||"",year=search.get("year")||"";
+  if(!validSlug(base))return err("Нишонии дурустро ворид кунед.");
+  const stem=base.slice(0,43).replace(/-$/,""),fresh=search.get("fresh")==="yes";
+  const simple=[base,reverse,/^\d{4}$/.test(year)?base.slice(0,45).replace(/-$/,"")+"-"+year:""];
+  const candidates=[...new Set([...(fresh?[]:simple),...Array.from({length:24},()=>stem+"-"+crypto.randomUUID().slice(0,6))].filter(validSlug))];
+  const rows=await db.select({slug:orders.slug,id:orders.id,owner:orders.owner}).from(orders).where(inArray(orders.slug,candidates));
+  const blocked=new Set(rows.filter(row=>row.owner!==user.userId||row.id!==search.get("id")).map(row=>row.slug));
+  return json({suggestions:candidates.filter(slug=>!blocked.has(slug)).slice(0,3)});
+ }
  if(id==="availability"){
   const search=new URL(request.url).searchParams;
   const slug=search.get("slug")||"";
@@ -110,7 +127,7 @@ export async function POST(request:Request,{params}:Context){
  if(id&&!previous)return missing();
  if(previous&&(!["draft","returned"].includes(previous.status)))return err("Ҳоло ин фармоишро тағйир дода наметавонед.",409);
  const [taken]=data.slug?await db.select({id:orders.id}).from(orders).where(eq(orders.slug,data.slug)).limit(1):[];
- if(taken&&taken.id!==previous?.id)return err("Ин нишонӣ аллакай истифода мешавад.",409);
+ if(taken&&taken.id!==previous?.id)return json({error:"Ин нишонӣ аллакай истифода мешавад.",code:"slug_taken"},409);
  const files=[];
  for(const type of ["photo","receipt"] as const){
   const file=form.get(type);
@@ -143,7 +160,7 @@ export async function POST(request:Request,{params}:Context){
   return json({order:serialize(result[0])});
  }catch(failure){
   await Promise.allSettled(Object.values(replacement).map(key=>bucket().delete(key)));
-  if(String(failure).includes("UNIQUE constraint"))return err("Ин нишонӣ аллакай истифода мешавад.",409);
+  if(String(failure).includes("UNIQUE constraint"))return json({error:"Ин нишонӣ аллакай истифода мешавад.",code:"slug_taken"},409);
   console.error("Failed to save invitation",failure);
   return err("Захиракунӣ муваққатан дастнорас аст.",500);
  }

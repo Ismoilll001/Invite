@@ -1,11 +1,13 @@
 "use client";
+import {ActionArrow} from "./action-arrow";
+
 
 import {useEffect,useMemo,useRef,useState} from "react";
 import {InvitationPage} from "./invitation-page";
 import {sample,templateDetail,templateName,templates,type EventFilter,type SiteLanguage} from "./model";
 
 const labels={
- tj:{title:"Қолабҳои маъмул",catalog:"Даъватномаи дӯстдоштаи худро интихоб кунед",kicker:"МАҶМӮАИ ҚОЛАБҲО",description:"Деморо кушоед, даъватномаро бо чашми меҳмон бинед ва тарҳи писандидаатонро интихоб намоед.",all:"Ҳама",wedding:"Тӯй",morning:"Оши наҳор",both:"Ду маросим",popular:"Маъмул",newest:"Нав",low:"Аввал арзон",high:"Аввал гарон",currency:"сомонӣ"},
+ tj:{title:"Даъватномаҳои мо",catalog:"Даъватномаи дӯстдоштаи худро интихоб кунед",kicker:"ДАЪВАТНОМАҲО БАРОИ ҶАШНИ ШУМО",description:"Даъватномаҳоро бинед ва тарҳи писандидаатонро интихоб кунед.",all:"Ҳама",wedding:"Тӯй",morning:"Оши наҳор",both:"Ду маросим",popular:"Пешниҳоди мо",newest:"Нав",low:"Аввал арзон",high:"Аввал гарон",currency:"сомонӣ"},
  ru:{title:"Популярные шаблоны",catalog:"Выберите приглашение, которое подходит именно вам",kicker:"КОЛЛЕКЦИЯ ШАБЛОНОВ",description:"Откройте демо, посмотрите приглашение глазами гостя и выберите любимый дизайн.",all:"Все",wedding:"Свадьба",morning:"Оши наҳор",both:"Два события",popular:"Популярные",newest:"Новые",low:"Сначала дешевле",high:"Сначала дороже",currency:"сомони"},
 };
 
@@ -34,10 +36,10 @@ export function TemplateCatalog({standalone,language="tj",limit}:{standalone:boo
   <div className="gallery template-gallery">
    {visible.map(item=><article className="tile" key={item.id}><a href={`/templates/${item.id}?lang=${language}`} className="tile-link" aria-label={templateName(item,language)}>
     <TemplatePreview item={item} language={language}/>
-    <div className="tile-caption"><div><p className="tile-style">{templateDetail(item,language)}</p><h3>{templateName(item,language)}</h3><p><strong>{item.price}</strong> {t.currency}</p></div><span className="icon" aria-hidden="true">↗</span></div>
+    <div className="tile-caption"><div><p className="tile-style">{templateDetail(item,language)}</p><h3>{templateName(item,language)}</h3><p><strong>{item.price}</strong> {t.currency}</p></div><span className="icon" aria-hidden="true"><ActionArrow/></span></div>
    </a></article>)}
   </div>
-  {!standalone&&<div className="catalog-more"><a className="button secondary" href={`/templates?lang=${language}`}>{language==="tj"?"Ҳамаи қолабҳо":"Все шаблоны"} ↗</a></div>}
+  {!standalone&&<div className="catalog-more"><a className="button secondary" href={`/templates?lang=${language}`}>{language==="tj"?"Ҳамаи даъватномаҳо":"Все шаблоны"} <ActionArrow/></a></div>}
  </section>;
 }
 
