@@ -7,7 +7,7 @@ export const allTemplates = [
 ] as const;
 // Retired designs stay readable for existing orders, but are not offered in the catalog.
 export const templates=allTemplates.filter(template=>!["olive","gold"].includes(template.id));
-export const sample={template:"rose",first:"Сатторҷон",second:"Мадинахон",date:"2027-06-12",time:"18:00",venue:"Тарабхонаи «Навгилем»",address:"Исфара, Тоҷикистон",message:"",locale:"tj",slug:"sattorjon-madinakhon",eventType:"wedding",morningDate:"2027-06-12",morningTime:"08:00",morningVenue:"Ҳавлии домод",morningAddress:"Исфара, Тоҷикистон",program:"18:00 — Пешвози меҳмонон\n19:00 — Оғози базм",guests:""};
+export const sample={template:"rose",first:"Фаридун",second:"Сабрина",date:"2027-06-19",time:"18:00",venue:"Тарабхонаи «Гулистон»",address:"Хуҷанд, кӯчаи Камоли Хуҷандӣ, 28",message:"",locale:"tj",slug:"",eventType:"wedding",morningDate:"2027-06-19",morningTime:"08:00",morningVenue:"Ҳавлии домод",morningAddress:"Хуҷанд, Тоҷикистон",program:"18:00 — Пешвози меҳмонон\n19:00 — Оғози базм",guests:""};
 export const empty={...sample,first:"",second:"",date:"",time:"",venue:"",address:"",slug:"",morningDate:"",morningTime:"",morningVenue:"",morningAddress:"",program:"",guests:""};
 export const optionalSections = ["countdown","welcome","photo","story","details","program","closing","rsvp","wishes","gifts","music"] as const;
 export type Invite=typeof sample & {palette?: string; hiddenSections?: string; textOverrides?: string; giftDetails?: string};
@@ -23,6 +23,16 @@ export function invitationTextOverrides(value?: string): Record<string,string> {
 }
 
 export type SiteLanguage="tj"|"ru";
+const demoDetails={
+ raabta:{first:"Муҳаммадҷон",second:"Оминахон",date:"2027-08-21",venue:"Тарабхонаи «Ситора»",address:"Исфара, кӯчаи Рӯдакӣ, 16",morningAddress:"Исфара, Тоҷикистон"},
+ royal:{first:"Шаҳриёр",second:"Нигина",date:"2027-10-09",venue:"Тарабхонаи «Баҳористон»",address:"Конибодом, кӯчаи Исмоили Сомонӣ, 42",morningAddress:"Конибодом, Тоҷикистон"},
+} as const;
+
+export function demoInvitation(template:(typeof templates)[number],locale:SiteLanguage):Invite{
+ const details=template.id==="raabta"||template.id==="royal"?demoDetails[template.id]:sample;
+ return {...sample,...details,template:template.id,locale,eventType:template.event,morningDate:details.date};
+}
+
 export type EventFilter="all"|"wedding"|"morning"|"both";
 export function templateName(template:(typeof templates)[number],language:SiteLanguage){return language==="tj"?template.nameTj:template.nameRu;}
 export function templateDetail(template:(typeof templates)[number],language:SiteLanguage){return language==="tj"?template.detailTj:template.detailRu;}

@@ -6,6 +6,9 @@ import {RaabtaInvitation} from "./raabta/raabta-invitation";
 import type {CSSProperties,ReactNode} from "react";
 import {invitationDate} from "./invitation-date";
 import {InvitationCountdown} from "./invitation-countdown";
+import {RoseCoverFlorals} from "./rose-cover-florals";
+import {RoseFlourish} from "./rose-flourish";
+import {RoseEntrance} from "./rose-entrance";
 import {InvitationReveal} from "./invitation-reveal";
 import {InvitationMusic} from "./invitation-music";
 import {InlineField} from "./invitation-inline-field";
@@ -86,29 +89,10 @@ function InvitationDesign({data,photo,preview=false,coverOnly=false,editor,rsvp,
  const customProgram=data.program.trim().split("\n").map(line=>line.trim()).filter(Boolean);
  const programItems=customProgram.length>0?customProgram.map((line,index)=>{const [itemTime,...rest]=line.split(/\s+[—-]\s+/);return [rest.length?itemTime:"",rest.join(" — ")||line,text.programItems[index]?.[2]||""];}):text.programItems;
 
- return <><article className={`invitation-site theme-${data.template}`} data-palette={palette.id} style={colors} lang={text.lang} aria-hidden={coverOnly||undefined}>
+ const invitation=<article className={`invitation-site theme-${data.template}`} data-palette={palette.id} style={colors} lang={text.lang} aria-hidden={coverOnly||undefined}>
   {data.template==="rose"&&!coverOnly&&<InvitationReveal enabled={!editor} sectionState={`${data.hiddenSections??""}|${Boolean(photo)}|${data.eventType}|${Boolean(starts)}`}/>}
-  {data.template==="rose"&&<div className="rose-page-vines" aria-hidden="true"><span/><span/></div>}
   <section data-editor-section="cover" className="invitation-cover">
-   {data.template==="rose"&&<div className="rose-garden" aria-hidden="true">
-    <svg className="rose-opening-branch" viewBox="0 0 840 155" focusable="false">
-      <path className="rose-opening-stem" pathLength="1" d="M8 12C90 9 117 77 196 88S301 42 372 75 446 145 513 126 580 71 651 88 750 71 830 17"/>
-      {[[93, 30, -96], [148, 68, 43], [222, 89, 80], [282, 70, -92], [354, 69, 34], [426, 111, -73], [501, 129, 65], [564, 101, -102], [633, 84, -49], [708, 88, 71], [767, 58, -66]].map(([x, y, angle], index) =>
-        <g key={x} transform={`translate(${x} ${y}) rotate(${angle})`}>
-          <path className="rose-opening-leaf" style={{animationDelay: `${2.1 + index * .11}s`}} d="M0 0C2-12 14-19 27-15 24-5 13 2 0 0Z"/>
-        </g>
-      )}
-    </svg>
-    {[6, 17, 29, 42, 58, 70, 83, 94].map((left, index) =>
-      <span key={left} className="rose-petal" style={{
-        left: `${left}%`,
-        animationDelay: `${-index * 2.7}s`,
-        animationDuration: `${16 + (index % 4) * 2}s`,
-      }}/>
-    )}
-    <span className="rose-flight rose-flight-background"><span className="rose-butterfly"/></span>
-    <span className="rose-flight rose-flight-cover"><span className="rose-butterfly"/></span>
-   </div>}
+   {data.template==="rose"&&<RoseCoverFlorals coverOnly={coverOnly} animate={!coverOnly&&!editor}/>}
    <span className="invitation-spark spark-one" aria-hidden="true">✦</span>
    <span className="invitation-spark spark-two" aria-hidden="true">✧</span>
    <span className="invitation-spark spark-three" aria-hidden="true">✦</span>
@@ -130,20 +114,34 @@ function InvitationDesign({data,photo,preview=false,coverOnly=false,editor,rsvp,
   </section>
   {!coverOnly&&<>
   {section("countdown",locale==="ru"?"Обратный отсчёт":locale==="uz"?"Саноқ":"Ҳисоби баръакс",!preview&&starts&&Number.isFinite(+starts)&&<InvitationCountdown startsAt={+starts} locale={locale}/>)}
-  {section("welcome",text.welcomeTitle,<section className="invitation-section invitation-welcome"><p className="invitation-section-kicker">{editableText("welcomeKicker",text.welcomeKicker)}</p><h3>{editableText("welcomeTitle",text.welcomeTitle)}</h3><div className="editable-invitation-line"><p>{field("message",message,editLabel,450,true)}</p></div></section>)}
-  {section("photo",text.photo,photo&&<section className="invitation-section invitation-photo-block editable-invitation-section"><div className="invitation-section-heading"><p className="invitation-section-kicker">{editableText("photoKicker",text.photoKicker)}</p><h3>{editableText("photoTitle",text.photoTitle)}</h3><p>{editableText("photoText",text.photoText,true)}</p></div><div className="invitation-photo-editor">{editor?.photoUpload}<div className="invitation-photo-stack"><img src={photo} alt={text.photo} loading="lazy"/></div></div></section>)}
-  {section("story",text.storyKicker,<section className="invitation-section invitation-story"><p className="invitation-section-kicker">{editableText("storyKicker",text.storyKicker)}</p><h3>{editableText("storyTitle",text.storyTitle)}</h3><div className="invitation-story-grid">{text.story.map(([season,title,description],index)=><article key={season}><span>0{index+1}</span><small>{editableText("story.season"+index,season)}</small><h4>{editableText("story.title"+index,title)}</h4><p>{editableText("story.body"+index,description,true)}</p></article>)}</div></section>)}
+  {section("welcome",text.welcomeTitle,<section className="invitation-section invitation-welcome">{data.template==="rose"&&<><RoseFlourish position="welcome" corner animate={!editor}/></>}<p className="invitation-section-kicker">{editableText("welcomeKicker",text.welcomeKicker)}</p><h3>{editableText("welcomeTitle",text.welcomeTitle)}</h3><div className="editable-invitation-line"><p>{field("message",message,editLabel,450,true)}</p></div></section>)}
+  {section("photo",text.photo,photo&&<section className="invitation-section invitation-photo-block editable-invitation-section">{data.template==="rose"&&<><RoseFlourish position="photo" animate={!editor}/></>}<div className="invitation-section-heading"><p className="invitation-section-kicker">{editableText("photoKicker",text.photoKicker)}</p><h3>{editableText("photoTitle",text.photoTitle)}</h3><p>{editableText("photoText",text.photoText,true)}</p></div><div className="invitation-photo-editor">{editor?.photoUpload}<div className="invitation-photo-stack"><img src={photo} alt={text.photo} loading="lazy"/></div></div></section>)}
+  {section("story",text.storyKicker,<section className="invitation-section invitation-story">{data.template==="rose"&&<><RoseFlourish position="story" corner animate={!editor}/><RoseFlourish position="story-bloom" head animate={!editor}/></>}<p className="invitation-section-kicker">{editableText("storyKicker",text.storyKicker)}</p><h3>{editableText("storyTitle",text.storyTitle)}</h3><div className="invitation-story-grid">{text.story.map(([season,title,description],index)=><article key={season}>{data.template==="rose"?<RoseFlourish position="story-marker" head animate={!editor}/>:<span>0{index+1}</span>}<small>{editableText("story.season"+index,season)}</small><h4>{editableText("story.title"+index,title)}</h4><p>{editableText("story.body"+index,description,true)}</p></article>)}</div></section>)}
   {data.eventType==="both"&&<section className="invitation-section dual-events"><h3>{editableText("events.title",locale==="tj"?"Ду маросим":locale==="uz"?"Икки маросим":"Два события")}</h3><div className="event-cards"><EventCard title={editableText("events.morning",text.morning)} date={data.morningDate} time={data.morningTime} venue={data.morningVenue} address={data.morningAddress} locale={locale}/><EventCard title={editableText("events.wedding",text.wedding)} date={data.date} time={data.time} venue={data.venue} address={data.address} locale={locale}/></div></section>}
-  {section("details",text.detailsTitle,<section className="invitation-section invitation-details editable-invitation-section"><p className="invitation-section-kicker">{editableText("detailsKicker",text.detailsKicker)}</p><h3>{editableText("detailsTitle",text.detailsTitle)}</h3><div className="invitation-details-grid"><article><small>{editableText("when",text.when)}</small><strong>{editor?field(morningOnly?"morningDate":"date",date,editLabel+" · "+text.when,10,false,"date"):dateText}</strong><p>{field(morningOnly?"morningTime":"time",time,editLabel+" · "+time,5,false,"time")}</p></article><article><small>{editableText("where",text.where)}</small><strong>{field(morningOnly?"morningVenue":"venue",venue,editLabel+" · "+text.where,100)}</strong>{(editor||address)&&<p>{field(morningOnly?"morningAddress":"address",address,editLabel+" · "+text.location,160)}</p>}</article></div>{!preview&&<div className="invitation-actions">
+  {section("details",text.detailsTitle,<section className="invitation-section invitation-details editable-invitation-section">{data.template==="rose"&&<><RoseFlourish position="details" corner animate={!editor}/></>}<p className="invitation-section-kicker">{editableText("detailsKicker",text.detailsKicker)}</p><h3>{editableText("detailsTitle",text.detailsTitle)}</h3><div className="invitation-details-grid"><article>{data.template==="rose"&&<RoseDetailsIcon kind="date"/>}<small>{editableText("when",text.when)}</small><strong>{editor?field(morningOnly?"morningDate":"date",date,editLabel+" · "+text.when,10,false,"date"):dateText}</strong><p>{field(morningOnly?"morningTime":"time",time,editLabel+" · "+time,5,false,"time")}</p></article><article>{data.template==="rose"&&<RoseDetailsIcon kind="place"/>}<small>{editableText("where",text.where)}</small><strong>{field(morningOnly?"morningVenue":"venue",venue,editLabel+" · "+text.where,100)}</strong>{(editor||address)&&<p>{field(morningOnly?"morningAddress":"address",address,editLabel+" · "+text.location,160)}</p>}</article></div>{!preview&&<div className="invitation-actions">
     {address&&editableText("actions.map",text.map,false,label=><a href={`https://www.google.com/maps/search/?${mapQuery}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
     {address&&editableText("actions.yandex",text.yandex,false,label=><a href={`https://yandex.com/maps/?text=${encodeURIComponent(place)}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
     {calendar&&editableText("actions.calendar",text.calendar,false,label=><a href={`https://calendar.google.com/calendar/render?${calendar}`} target="_blank" rel="noopener noreferrer">{label} <ActionArrow/></a>)}
    </div>}</section>)}
-  {section("program",text.programTitle,<section className="invitation-section invitation-program editable-invitation-section"><p className="invitation-section-kicker">{editableText("programKicker",text.programKicker)}</p><h3>{editableText("programTitle",text.programTitle)}</h3><div className="invitation-program-grid">{programItems.map(([itemTime,title,description],index)=><article key={`${itemTime}-${index}`}><time>{editableText("program.time"+index,itemTime)}</time><div><h4>{editableText("program.title"+index,title)}</h4>{(editor||description)&&<p>{editableText("program.body"+index,description,true)}</p>}</div></article>)}</div></section>)}
+  {section("program",text.programTitle,<section className="invitation-section invitation-program editable-invitation-section">{data.template==="rose"&&<><RoseFlourish position="program" animate={!editor}/><RoseFlourish position="program-head" head animate={!editor}/></>}<p className="invitation-section-kicker">{editableText("programKicker",text.programKicker)}</p><h3>{editableText("programTitle",text.programTitle)}</h3><div className="invitation-program-grid">{programItems.map(([itemTime,title,description],index)=><article key={`${itemTime}-${index}`}><time>{editableText("program.time"+index,itemTime)}</time><div><h4>{editableText("program.title"+index,title)}</h4>{(editor||description)&&<p>{editableText("program.body"+index,description,true)}</p>}</div></article>)}</div></section>)}
   {rsvp}
-  {section("closing",text.closingTitle,<section className="invitation-section invitation-closing"><p className="invitation-section-kicker">{editableText("closingKicker",text.closingKicker)}</p><h3>{editableText("closingTitle",text.closingTitle)}</h3><p>{editableText("closingText",text.closingText,true)}</p><span>{editableText("signature",text.signature)}</span><strong>{editableText("closing.names",first+" "+(overrides.joiner??text.joiner)+" "+second)}</strong><InvitationCredit/></section>)}
+  {section("closing",text.closingTitle,<section className="invitation-section invitation-closing">{data.template==="rose"&&<><RoseFlourish position="closing" animate={!editor}/><RoseFlourish position="closing-head" corner animate={!editor}/><RoseFlourish position="closing-seal" head animate={!editor}/></>}<p className="invitation-section-kicker">{editableText("closingKicker",text.closingKicker)}</p><h3>{editableText("closingTitle",text.closingTitle)}</h3><p>{editableText("closingText",text.closingText,true)}</p><span>{editableText("signature",text.signature)}</span><strong>{editableText("closing.names",first+" "+(overrides.joiner??text.joiner)+" "+second)}</strong><InvitationCredit/></section>)}
   </>}
- </article>{data.template==="rose"&&!preview&&!coverOnly&&sectionVisible(data,"music")&&<InvitationMusic locale={locale} style={colors}/>}</>;
+ </article>;
+ const music=data.template==="rose"&&!preview&&!coverOnly&&sectionVisible(data,"music")
+  ? {style:colors,src:"/audio/rose-love-story.mp3"}
+  : undefined;
+ return data.template==="rose"&&!skipOpening&&!preview&&!coverOnly&&!editor
+  ? <RoseEntrance locale={locale} music={music}>{invitation}</RoseEntrance>
+  : <>{invitation}{music&&<InvitationMusic locale={locale} {...music}/>}</>;
+}
+
+function RoseDetailsIcon({kind}:{kind:"date"|"place"}){
+ return <svg className="rose-detail-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  {kind==="date"
+   ? <><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M7.5 3v4m9-4v4M4 10h16m-11 5 2 2 4-4"/></>
+   : <><path d="M19 10c0 5-7 11-7 11s-7-6-7-11a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.4"/></>}
+ </svg>;
 }
 
 function EventCard({title,date,time,venue,address,locale}:{title:ReactNode;date:string;time:string;venue:string;address:string;locale:string}){

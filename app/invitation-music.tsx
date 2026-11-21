@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useRef, useState,type CSSProperties} from "react";
+import {useEffect, useRef, useState,type CSSProperties,type RefObject} from "react";
 
 
 const labels = {
@@ -9,8 +9,9 @@ const labels = {
   uz: ["Musiqani yoqish", "Musiqani to‘xtatish", "Musiqa yuklanmadi"],
 };
 
-export function InvitationMusic({locale,style,src="/rose-romantic-waltz.mp3",volume=0.45}: {locale: string;style?:CSSProperties;src?:string;volume?:number}) {
-  const audio = useRef<HTMLAudioElement>(null);
+export function InvitationMusic({locale,style,src="/rose-romantic-waltz.mp3",volume=0.45,playbackRef}: {locale: string;style?:CSSProperties;src?:string;volume?:number;playbackRef?:RefObject<HTMLAudioElement|null>}) {
+  const internalAudio = useRef<HTMLAudioElement>(null);
+  const audio = playbackRef ?? internalAudio;
   const triedByGesture = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -20,6 +21,7 @@ export function InvitationMusic({locale,style,src="/rose-romantic-waltz.mp3",vol
     const player = audio.current;
     if (!player) return;
     player.volume = volume;
+    if (playbackRef) return;
 
     function startAfterGesture(event: Event) {
       if (triedByGesture.current || !player?.paused ||
@@ -36,7 +38,7 @@ export function InvitationMusic({locale,style,src="/rose-romantic-waltz.mp3",vol
       document.removeEventListener("click", startAfterGesture);
       document.removeEventListener("keydown", startAfterGesture);
     };
-  }, [volume]);
+  }, [audio,playbackRef,volume]);
 
   async function toggle() {
     const player = audio.current;

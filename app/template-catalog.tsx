@@ -4,7 +4,7 @@ import {ActionArrow} from "./action-arrow";
 
 import {useEffect,useMemo,useRef,useState} from "react";
 import {InvitationPage} from "./invitation-page";
-import {sample,templateDetail,templateName,templates,type EventFilter,type SiteLanguage} from "./model";
+import {demoInvitation,templateDetail,templateName,templates,type EventFilter,type SiteLanguage} from "./model";
 
 const labels={
  tj:{title:"Даъватномаҳои мо",catalog:"Даъватномаи дӯстдоштаи худро интихоб кунед",kicker:"ДАЪВАТНОМАҲО БАРОИ ҶАШНИ ШУМО",description:"Даъватномаҳоро бинед ва тарҳи писандидаатонро интихоб кунед.",all:"Ҳама",wedding:"Тӯй",morning:"Оши наҳор",both:"Ду маросим",popular:"Пешниҳоди мо",newest:"Нав",low:"Аввал арзон",high:"Аввал гарон",currency:"сомонӣ"},
@@ -54,6 +54,6 @@ function TemplatePreview({item,language}:{item:(typeof templates)[number];langua
   observer.observe(element);return ()=>observer.disconnect();
  },[]);
  return <div className="tile-preview" ref={root} data-preview-visible={visible}>
-  <InvitationPage data={{...sample,template:item.id,locale:language,eventType:item.event}} coverOnly/>
+  <InvitationPage data={demoInvitation(item,language)} coverOnly/>
  </div>;
 }

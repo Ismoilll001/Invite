@@ -43,6 +43,9 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
  const [linkNotice,setLinkNotice]=useState("");
  const [checkingLink,setCheckingLink]=useState(false);const moving=useRef(false);
  const [detailsError,setDetailsError]=useState(false);
+ const [showEventDetails,setShowEventDetails]=useState(false);
+ const continueLabel=language==="tj"?"Идома додан":"Продолжить";
+ const eventDetailsTitle=language==="tj"?"Маълумоти ҷашни шумо :)":"Данные вашего торжества :)";
  const optionalSection=step===2?"welcome":step===3?"photo":step===5?"program":undefined;
  useEffect(()=>{
   if(step===paymentStep)return;
@@ -105,10 +108,25 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
     {accessPanel&&(locked?accessPanel:<details className="ready-access"><summary>{language==="tj"?"Нигоҳ доштани дастрасӣ ба даъватнома":"Сохранить доступ к приглашению"}</summary>{accessPanel}</details>)}
    </div>
   </section>}
-  <div className="visual-editor-canvas"><InvitationPage skipOpening data={data} photo={isPreview||isPayment?photoUrl||orderPhoto:photo} editor={locked||step>=linkStep?undefined:{onEdit:edit,update,setSectionHidden,controls:sectionControls,photoUpload:<InvitationPhotoUpload language={language} onSelect={setPhoto} hasPhoto={!!(photoUrl||orderPhoto)}/>}}/></div>
-  <EditorDialog open={step===0} onClose={()=>setStep(1)} className="language-choice-card" label={t.chooseLanguage} closeLabel={t.close}><span className="choice-mark">BAZMNOMA</span><h1>{t.chooseLanguage}</h1><p>{t.chooseLanguageText}</p><div className="language-choice-grid">
-   {([['tj','Тоҷикӣ','Тоҷикӣ'],['ru','Русский','Русский'],['uz','Ўзбекча','Ўзбекча']] as const).map(([value,title,sample])=><button type="button" key={value} aria-pressed={data.locale===value} onClick={()=>update("locale",value)}><span>{value.toUpperCase()}</span><strong>{title}</strong><small>{sample}</small></button>)}
-  </div><button type="button" className="button secondary editor-skip" onClick={skip}>{skipLabel}</button></EditorDialog>
+  <div className="visual-editor-canvas"><InvitationPage skipOpening data={data} photo={isPreview||isPayment?photoUrl||orderPhoto:photo} editor={locked||step===0||step>=linkStep?undefined:{onEdit:edit,update,setSectionHidden,controls:sectionControls,photoUpload:<InvitationPhotoUpload language={language} onSelect={setPhoto} hasPhoto={!!(photoUrl||orderPhoto)}/>}}/></div>
+  <EditorDialog open={step===0&&!showEventDetails} onClose={()=>location.assign(`/templates/${data.template}?lang=${language}`)} className="language-choice-card" label={t.chooseLanguage} closeLabel={t.close}><span className="choice-mark">BAZMNOMA</span><h1>{t.chooseLanguage}</h1><p>{t.chooseLanguageText}</p><div className="language-choice-grid">
+   {([['tj','Тоҷикӣ','Тоҷикӣ'],['ru','Русский','Русский'],['uz','Ўзбекча','Ўзбекча']] as const).map(([value,title,sample])=><button type="button" key={value} onClick={()=>{update("locale",value);setShowEventDetails(true);}}><span>{value.toUpperCase()}</span><strong>{title}</strong><small>{sample}</small></button>)}
+  </div></EditorDialog>
+  <EditorDialog open={step===0&&showEventDetails} onClose={()=>setShowEventDetails(false)} className="event-details-dialog" label={eventDetailsTitle} closeLabel={t.back}>
+   <h1>{eventDetailsTitle}</h1>
+   <p>{language==="tj"?"Мо ин маълумотро худамон ба бахшҳои лозими даъватнома мегузорем.":"Укажите имена, дату и место. Мы сами подставим эти данные во все нужные разделы приглашения."}</p>
+   <form onSubmit={event=>{event.preventDefault();setStep(1);}}>
+    <div className="fields">
+     <label>{language==="tj"?"Номи домод":"Имя жениха"}<input value={data.first} onChange={event=>update("first",event.target.value)} required pattern={".*\\S.*"}/></label>
+     <label>{language==="tj"?"Номи арӯс":"Имя невесты"}<input value={data.second} onChange={event=>update("second",event.target.value)} required pattern={".*\\S.*"}/></label>
+    </div>
+    <DetailsFields data={data} update={update} language={language} required/>
+    <div className="event-details-actions">
+     <button type="button" className="button secondary" onClick={()=>setShowEventDetails(false)}>{t.back}</button>
+     <button type="submit" className="button">{continueLabel}</button>
+    </div>
+   </form>
+  </EditorDialog>
   {step===linkStep&&<section className="editor-in-place editor-checkout" data-editor-section="checkout"><h2>{t.link}</h2><InvitationLinkFields data={data} update={update} language={language} invalid={linkError} suggestLinks={suggestLinks} checkLink={checkLink}/>{linkNotice&&<p className="alert" role="alert">{linkNotice}</p>}<button type="button" className="button secondary editor-skip" onClick={skip}>{skipLabel}</button></section>}
   <EditorDialog open={isPayment&&!locked} onClose={()=>setStep(previewStep)} busy={busy} className="payment-dialog" label={language==="tj"?"Пардохти даъватнома":"Оплата приглашения"} closeLabel={t.close}>
    <p className="payment-kicker">BAZMNOMA</p><h2>{language==="tj"?"Як қадам то даъвати меҳмонон":"Один шаг до приглашения гостей"}</h2><p className="payment-dialog-intro">{language==="tj"?"Пардохт кунед ва расидро фиристед. Мо онро месанҷем ва даъватномаро нашр мекунем.":"Оплатите и прикрепите квитанцию. Мы проверим её и опубликуем ваше приглашение."}</p>
@@ -116,22 +134,22 @@ export function VisualEditor({data,step,language,photoUrl,orderPhoto,busy,error,
    <button type="button" disabled={busy||checkingLink} className="payment-later" onClick={()=>setStep(previewStep)}>{language==="tj"?"Баъдтар пардохт мекунам":"Оплачу позже"}</button>
   </EditorDialog>
   {error&&!isPayment&&<p className="alert editor-save-error" role="alert">{error}</p>}
-  {!isPayment&&<div className="visual-step-dock"><button type="button" className="visual-back" disabled={busy||checkingLink} onClick={()=>locked?onExit?.():step===0?location.assign(`/templates/${data.template}?lang=${language}`):move(step-1)}>← <span>{t.back}</span></button><div className="visual-progress"><strong>{t.steps[step]} · {step+1} {language==="tj"?"аз":"из"} {totalSteps}</strong><span><i style={{width:`${((step+1)/totalSteps)*100}%`}}/></span></div>{locked?<button type="button" className="visual-next" onClick={onExit}>{language==="tj"?"Фармоишҳои ман":"Мои заказы"}</button>:!isPayment?<button disabled={busy||checkingLink} type="button" className="visual-next" onClick={nextStep}>{isPreview?t.pay:step===linkStep?(language==="tj"?"Сабти фармоиш":"Оформить заказ"):(busy||checkingLink)?(language==="tj"?"Сабт мешавад…":"Сохраняем…"):t.next} →</button>:signedIn?<button type="submit" form="invitation-payment" className="visual-next" disabled={busy||checkingLink}>{t.send} →</button>:<a className="visual-next" href={signInUrl} target="_top">{t.signin} →</a>}</div>}
+  {step!==0&&!isPayment&&<div className="visual-step-dock"><button type="button" className="visual-back" disabled={busy||checkingLink} onClick={()=>locked?onExit?.():move(step-1)}>← <span>{t.back}</span></button><div className="visual-progress"><strong>{t.steps[step]} · {step+1} {language==="tj"?"аз":"из"} {totalSteps}</strong><span><i style={{width:`${((step+1)/totalSteps)*100}%`}}/></span></div>{locked?<button type="button" className="visual-next" onClick={onExit}>{language==="tj"?"Фармоишҳои ман":"Мои заказы"}</button>:!isPayment?<button disabled={busy||checkingLink} type="button" className="visual-next" onClick={nextStep}>{isPreview?t.pay:step===linkStep?(language==="tj"?"Сабти фармоиш":"Оформить заказ"):(busy||checkingLink)?(language==="tj"?"Сабт мешавад…":"Сохраняем…"):t.next} →</button>:signedIn?<button type="submit" form="invitation-payment" className="visual-next" disabled={busy||checkingLink}>{t.send} →</button>:<a className="visual-next" href={signInUrl} target="_top">{t.signin} →</a>}</div>}
  </div>;
 }
 
-function DetailsFields({data,update,language}:{data:Invite;update:Props['update'];language:SiteLanguage}){return <><label>{language==="tj"?"Навъи маросим":"Вид события"}<select value={data.eventType} onChange={e=>update("eventType",e.target.value)}><option value="wedding">{language==="tj"?"Тӯйи арӯсӣ":"Свадьба"}</option><option value="morning">Оши наҳор</option><option value="both">{language==="tj"?"Ду маросим":"Два события"}</option></select></label>{data.eventType!=="morning"&&<EventFields data={data} update={update} language={language} morning={false}/>}
- {data.eventType!=="wedding"&&<EventFields data={data} update={update} language={language} morning/>}</>}
-function EventFields({data,update,language,morning}:{data:Invite;update:Props["update"];language:SiteLanguage;morning:boolean}){
+function DetailsFields({data,update,language,required=false}:{data:Invite;update:Props['update'];language:SiteLanguage;required?:boolean}){return <><label>{language==="tj"?"Навъи маросим":"Вид события"}<select value={data.eventType} onChange={e=>update("eventType",e.target.value)}><option value="wedding">{language==="tj"?"Тӯйи арӯсӣ":"Свадьба"}</option><option value="morning">Оши наҳор</option><option value="both">{language==="tj"?"Ду маросим":"Два события"}</option></select></label>{data.eventType!=="morning"&&<EventFields data={data} update={update} language={language} required={required} morning={false}/>}
+ {data.eventType!=="wedding"&&<EventFields data={data} update={update} language={language} required={required} morning/>}</>}
+function EventFields({data,update,language,morning,required}:{data:Invite;update:Props["update"];language:SiteLanguage;morning:boolean;required:boolean}){
  const date=morning?"morningDate":"date",time=morning?"morningTime":"time";
  const venue=morning?"morningVenue":"venue",address=morning?"morningAddress":"address";
  return <>
   {data.eventType==="both"&&<h3>{morning?"Оши наҳор":language==="tj"?"Тӯйи арӯсӣ":"Свадьба"}</h3>}
   <div className="fields">
-   <label>{language==="tj"?"Сана":"Дата"}<input type="date" value={data[date]} onChange={e=>update(date,e.target.value)}/></label>
-   <label>{language==="tj"?"Соат":"Время"}<input type="time" value={data[time]} onChange={e=>update(time,e.target.value)}/></label>
+   <label>{language==="tj"?"Сана":"Дата"}<input type="date" required={required} value={data[date]} onInput={e=>update(date,e.currentTarget.value)}/></label>
+   <label>{language==="tj"?"Соат":"Время"}<input type="time" required={required} value={data[time]} onInput={e=>update(time,e.currentTarget.value)}/></label>
   </div>
-  <label>{language==="tj"?"Ҷой":"Место"}<input value={data[venue]} onChange={e=>update(venue,e.target.value)}/></label>
+  <label>{required?(language==="tj"?"Тарабхона ё макон":"Ресторан или место"):(language==="tj"?"Ҷой":"Место")}<input required={required} pattern={required?".*\\S.*":undefined} value={data[venue]} onChange={e=>update(venue,e.target.value)}/></label>
   <label>{language==="tj"?"Суроға":"Адрес"}<input value={data[address]} onChange={e=>update(address,e.target.value)}/></label>
  </>;
 }

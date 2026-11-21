@@ -380,7 +380,6 @@ body:has(.start-dialog[open]){overflow:hidden}
   border: 0;
   background: transparent;
 }
-.theme-rose .invitation-countdown div { border-top: 0; }
 .invitation-site.theme-rose > .invitation-closing { padding-bottom: clamp(108px, 11cqw, 155px); }
 @media (prefers-reduced-motion: reduce) {
   .theme-rose .rose-page-vines { animation: none; }
@@ -409,27 +408,6 @@ body:has(.start-dialog[open]){overflow:hidden}
 }
 .invitation-photo-stack::before { rotate: -5deg; }
 .invitation-photo-stack::after { rotate: 4deg; background: #dfd8c7; }
-.theme-rose .invitation-countdown {
-  position: relative;
-  width: min(100%, 440px);
-  max-width: none;
-  padding: clamp(18px, 4cqw, 30px) 12px;
-  border: 1px solid #c791a28c;
-  border-radius: 32px 9px;
-  background-color: #fff9f8b8;
-  box-shadow: inset 0 0 0 4px #fff9f8, inset 0 0 0 5px #e7c8d4;
-}
-.theme-rose .invitation-countdown::before,
-.theme-rose .invitation-countdown::after {
-  content: "";
-  position: absolute;
-  width: 100px;
-  aspect-ratio: 400 / 136;
-  background: url("/images/rose-blossom-branch.svg") center / contain no-repeat;
-  pointer-events: none;
-}
-.theme-rose .invitation-countdown::before { top: -13px; left: -4px; }
-.theme-rose .invitation-countdown::after { bottom: -13px; right: -4px; rotate: 180deg; }
 .invitation-music {
   display: grid;
   justify-items: start;
@@ -534,14 +512,7 @@ small, label, button, input, select, textarea,
 .theme-rose :is(.rose-page-vines,.rose-garden,.invitation-countdown) { --decoration-filter: none; }
 .theme-rose[data-palette="blue"] :is(.rose-page-vines,.rose-garden,.invitation-countdown) { --decoration-filter: hue-rotate(242deg) saturate(.7); }
 .theme-rose[data-palette="ivory"] :is(.rose-page-vines,.rose-garden,.invitation-countdown) { --decoration-filter: hue-rotate(62deg) saturate(.65); }
-.theme-rose :is(.rose-page-vines,.rose-garden),
-.theme-rose .invitation-countdown::before,
-.theme-rose .invitation-countdown::after { filter: var(--decoration-filter); }
-.theme-rose .invitation-countdown {
-  border-color: color-mix(in srgb,var(--inv-accent) 50%,transparent);
-  background-color: color-mix(in srgb,var(--inv-paper) 45%,white);
-  box-shadow: inset 0 0 0 4px var(--inv-paper), inset 0 0 0 5px color-mix(in srgb,var(--inv-accent) 30%,white);
-}
+.theme-rose :is(.rose-page-vines,.rose-garden) { filter: var(--decoration-filter); }
 .theme-rose :is(.invitation-kicker,.invitation-section-kicker,small,dt,time,.invitation-cover-venue,.invitation-actions a) { font-weight: 700; }
 @media (prefers-reduced-motion: no-preference) {
   .theme-rose .invitation-cover > .editable-invitation-line { animation: rose-text-entrance .8s ease-out both; }
@@ -1306,3 +1277,597 @@ nav a,nav button,.button,.demo-select,.demo-back,.catalog-sort,.style-filters bu
 .link-availability{min-height:24px;font:500 18px/1.5 'Forum',serif;margin:10px 0 0}
 .link-availability.is-available{color:#496346}.link-availability:is(.is-taken,.is-invalid,.is-error){color:var(--wine)}
 @media(max-width:620px){.link-suggestions button{font-size:16px}.link-suggestions small{font-size:14px}.link-availability{font-size:17px}}
+
+.editor-dialog.event-details-dialog{width:min(590px,calc(100% - 28px));padding:54px clamp(16px,5vw,36px) 26px;border-radius:24px}
+.event-details-dialog h1{font-size:clamp(30px,5vw,44px);margin:0 0 10px}
+.event-details-dialog p{margin:0 0 18px}
+.event-details-dialog .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.event-details-dialog input{min-width:0}
+.event-details-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+@media(max-width:440px){.event-details-dialog .fields{grid-template-columns:1fr}}
+
+.rose-curtain {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  padding: 24px;
+  overflow: hidden;
+  color: #fff3e8;
+  touch-action: none;
+  background:
+    radial-gradient(ellipse at 49% 39%, #910e453b, #240413aa 85%),
+    url("/images/burgundy-velvet.webp") center / cover no-repeat,
+    #550c2a;
+}
+.rose-curtain[open] { display: grid; place-items: center; }
+.rose-curtain::backdrop { background: transparent; }
+.rose-curtain-controls { user-select: none; }
+.rose-swipe-track {
+  --rose-track-height: clamp(128px, 25dvh, 205px);
+  --rose-thumb-height: 58px;
+  position: relative;
+  width: var(--rose-thumb-height);
+  height: var(--rose-track-height);
+  border: 1px solid #f5c8946b;
+  border-radius: 999px;
+  background: linear-gradient(#27061382, #390a1db5);
+  box-shadow: inset 0 2px 15px #21030e72;
+}
+.rose-curtain-controls button {
+  position: absolute;
+  bottom: -1px;
+  left: -1px;
+  display: grid;
+  place-items: center;
+  width: var(--rose-thumb-height);
+  height: var(--rose-thumb-height);
+  padding: 0;
+  border: 1px solid #f5c894b3;
+  border-radius: 50%;
+  background: #4a0b26;
+  color: #ffe0ad;
+  box-shadow: 0 8px 22px #17000a65, inset 0 0 0 4px #f5c89412;
+  cursor: grab;
+  transform: translateY(calc((var(--rose-thumb-height) - var(--rose-track-height) + 2px) * var(--rose-slide, 0)));
+  transition: transform .32s cubic-bezier(.2,.8,.3,1), background .2s ease;
+}
+.rose-curtain-controls button:hover { background: #590e30; }
+.rose-swipe-track[data-dragging] button { transition: none; cursor: grabbing; }
+.rose-curtain-controls button:focus-visible { outline: 2px solid #ffe0ad; outline-offset: 4px; }
+.rose-curtain.is-opening {
+  animation: rose-curtain-sweep 1.82s cubic-bezier(.45,.05,.28,1) both;
+  clip-path: polygon(0 0,100% 0,100% var(--rose-edge),75% calc(var(--rose-edge) + var(--rose-swell)),50% var(--rose-edge),25% calc(var(--rose-edge) - var(--rose-swell)),0 var(--rose-edge));
+}
+@supports (clip-path: shape(from 0 0, line to 100% 0, close)) {
+  .rose-curtain.is-opening {
+    clip-path: shape(from 0 0, line to 100% 0,
+      line to 100% calc(var(--rose-edge) + var(--rose-swell) * .12),
+      curve to 72% calc(var(--rose-edge) - var(--rose-swell) * .34)
+        with 89% calc(var(--rose-edge) + var(--rose-swell) * .98) / 80% calc(var(--rose-edge) + var(--rose-swell) * .66),
+      curve to 39% calc(var(--rose-edge) + var(--rose-swell) * .1)
+        with 61% calc(var(--rose-edge) - var(--rose-swell) * 1.05) / 48% calc(var(--rose-edge) - var(--rose-swell) * .72),
+      curve to 0 calc(var(--rose-edge) - var(--rose-swell) * .55)
+        with 29% calc(var(--rose-edge) + var(--rose-swell) * .93) / 12% calc(var(--rose-edge) + var(--rose-swell) * .58), close);
+  }
+}
+.rose-curtain.is-opening .rose-curtain-controls { animation: rose-curtain-controls-away .55s ease both; }
+.rose-entrance-content:focus { outline: none; }
+.rose-entrance-content:not(.is-revealed) .rose-opening-stem,
+.rose-entrance-content:not(.is-revealed) .rose-opening-leaf { animation-play-state: paused; }
+.rose-entrance-content.is-revealed .invitation-names { animation: rose-entrance-names 1.2s .45s ease-out both; }
+.template-demo > .rose-entrance-content > .invitation-music { bottom: calc(100px + env(safe-area-inset-bottom)); }
+
+@property --rose-edge { syntax: "<percentage>"; inherits: false; initial-value: 100%; }
+@property --rose-swell { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@keyframes rose-curtain-sweep {
+  0% { --rose-edge: 100%; --rose-swell: 0%; }
+  35% { --rose-swell: 18%; }
+  75% { --rose-swell: 10%; }
+  100% { --rose-edge: -14%; --rose-swell: 0%; }
+}
+@keyframes rose-curtain-controls-away { to { opacity: 0; transform: translateY(-18px); } }
+@keyframes rose-entrance-names { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .rose-curtain.is-opening, .rose-curtain.is-opening .rose-curtain-controls,
+  .rose-entrance-content.is-revealed .invitation-names { animation: none; }
+  .rose-curtain-controls button { transition: none; }
+}
+
+/* Burgundy velvet and ivory for the Rose invitation. */
+.invitation-site.theme-rose {
+  background: #fffcf7;
+  --rose-velvet: radial-gradient(ellipse at 50% 25%, #830f3d20, #23030f68 92%),
+    url("/images/burgundy-velvet.webp") center / cover no-repeat, #4b1028;
+}
+.invitation-site.theme-rose > :is(.invitation-cover,.invitation-section) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.theme-rose .invitation-cover .invitation-spark { display: none; }
+.theme-rose :is(.invitation-cover,.invitation-welcome,.invitation-program,.invitation-wishes) {
+  --inv-ink: #fff6ee;
+  --inv-accent: #edc699;
+  color: var(--inv-ink);
+}
+.invitation-site.theme-rose > :is(.invitation-cover,.invitation-welcome,.invitation-program,.invitation-wishes) {
+  background: var(--rose-velvet);
+  --rose-paper-edge: clamp(19px, 4.3cqw, 56px);
+}
+.theme-rose :is(.invitation-welcome,.invitation-program,.invitation-wishes)::before,
+.theme-rose :is(.invitation-cover,.invitation-welcome,.invitation-program,.invitation-wishes)::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset-inline: 0;
+  height: var(--rose-paper-edge);
+  z-index: 1;
+  background: url("/images/rose-torn-paper.svg") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.theme-rose :is(.invitation-welcome,.invitation-program,.invitation-wishes)::before { top: -1px; }
+.theme-rose :is(.invitation-cover,.invitation-welcome,.invitation-program,.invitation-wishes)::after {
+  bottom: -1px;
+  transform: rotate(180deg);
+}
+.tile-preview .theme-rose .invitation-cover::after { display: none; }
+.theme-rose .invitation-cover :is(h2,.invitation-date) { color: var(--inv-ink); }
+.theme-rose :is(.invitation-welcome,.invitation-program) :is(h3,h4,p:not(.invitation-section-kicker),strong) { color: var(--inv-ink); }
+.theme-rose .invitation-closing a { color: var(--inv-accent); }
+.theme-rose .invitation-rsvp { background: #fffcf7; }
+
+.rose-flourish {
+  position: absolute;
+  z-index: -1;
+  width: clamp(110px, 20cqw, 306px);
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+  color: #a05265;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rose-flourish-stem { stroke: var(--rose-foil, currentColor); stroke-width: 3.6; }
+.rose-flourish-twig { stroke-width: 2.4; }
+
+
+
+
+.rose-flourish-welcome { width: clamp(39px,7cqw,90px); right: 8%; bottom: 13%; transform: rotate(-20deg); }
+.rose-flourish-photo { left: 1%; bottom: 3%; transform: rotate(-24deg); opacity: .72; }
+.rose-flourish-story { width: clamp(34px,6cqw,75px); right: 7%; top: 8%; transform: rotate(24deg); }
+.rose-flourish-details { right: 0; bottom: 0; transform: rotate(24deg) scaleX(-1); opacity: .64; }
+.rose-flourish-program { left: 1%; bottom: 3%; transform: rotate(-18deg); opacity: .8; }
+.rose-flourish-program-head { right: 7%; top: 8%; width: clamp(36px,7cqw,90px); transform: rotate(16deg); }
+.rose-flourish-closing { right: 3%; bottom: 5%; transform: rotate(20deg) scaleX(-1); }
+.rose-flourish-closing-head { left: 12%; top: 17%; width: clamp(38px,7cqw,90px); transform: rotate(-12deg); }
+
+/* Leaves and buds follow close behind each growing branch. */
+.rose-flourish {
+  --rose-twig-start: .95s;
+  --rose-twig-step: .22s;
+  --rose-leaf-start: 1.25s;
+  --rose-leaf-step: .26s;
+  --rose-bloom-start: 2.7s;
+  --rose-bloom-step: .39s;
+  --rose-sway-start: 8s;
+}
+.rose-flourish[data-rose-head] {
+  --rose-bloom-start: .4s;
+  --rose-sway-start: 4.1s;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rose-flourish[data-pending] { visibility: hidden; }
+  .rose-flourish[data-blooming] .rose-flourish-stem {
+    stroke-dasharray: 1 2;
+    animation: rose-grow-stem 4.2s linear both;
+  }
+  .rose-flourish[data-blooming] .rose-flourish-twig {
+    animation-duration: var(--rose-local-duration, 2.65s);
+    animation-delay: var(--rose-local-start, var(--rose-twig-start));
+  }
+  .rose-flourish[data-blooming] .rose-bloom {
+    transform-origin: 0 6px;
+    animation: rose-open-bloom 3.1s cubic-bezier(.25,.65,.3,1) both;
+  }
+  .rose-entrance-content:not(.is-revealed) .invitation-cover .rose-flourish * { animation-play-state: paused; }
+}
+@keyframes rose-grow-stem {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  7% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes rose-open-bloom { from { opacity: 0; transform: scale(.02); } to { opacity: 1; transform: scale(1); } }
+
+@container (max-width: 560px) {
+
+
+
+
+  .rose-flourish-photo { opacity: .48; }
+  .rose-flourish-details { opacity: .45; }
+  .rose-flourish-program { opacity: .55; }
+}
+.tile-preview .rose-flourish { width: 17cqw; }
+
+/* Align the guest forms and event details with the Rose invitation. */
+.invitation-site.theme-rose {
+  --rose-paper: #fffcf7;
+  --rose-wine: #6c2339;
+  --rose-rule: #b68f7a72;
+}
+.theme-rose .invitation-rsvp {
+  color: #4c2634;
+  background: var(--rose-paper);
+  font-family: var(--serif);
+  padding-block: clamp(48px, 7cqw, 105px);
+}
+.theme-rose .rsvp-card {
+  max-width: 590px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.theme-rose .invitation-rsvp h2 {
+  margin: 0 0 18px;
+  text-align: center;
+  font: 400 var(--invite-heading-size)/1.12 var(--serif);
+}
+.theme-rose .rsvp-card > p:not([role]) { text-align: center; font-size: var(--invite-copy-size); }
+.theme-rose .invitation-rsvp .rsvp-demo {
+  border: 0;
+  padding: 0;
+  margin-block: 12px 24px;
+  color: #73525b;
+  font-size: 15px;
+  opacity: 1;
+}
+.theme-rose .rsvp-field,
+.theme-rose .rsvp-choice legend { font-size: 17px; font-weight: 600; }
+.theme-rose .invitation-rsvp :is(input:not([type=radio]),textarea,select) {
+  border: 1px solid var(--rose-rule);
+  border-radius: 4px;
+  background: #fffefb;
+  color: #4c2634;
+  font: 500 1.0625rem/1.5 var(--serif);
+}
+.theme-rose .invitation-rsvp :is(input,textarea,select):focus-visible {
+  outline: 2px solid #995168;
+  outline-offset: 2px;
+}
+.theme-rose .rsvp-choice label {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rose-rule);
+  border-radius: 0;
+  font-size: 17px;
+}
+.theme-rose .invitation-rsvp input[type=radio] { accent-color: var(--rose-wine); }
+.theme-rose .invitation-rsvp .rsvp-submit {
+  min-height: 48px;
+  border: 1px solid #79364a;
+  border-radius: 999px;
+  background: var(--rose-velvet);
+  color: #fff6ee;
+  font: 600 1.0625rem/1.35 var(--serif);
+}
+.theme-rose .invitation-rsvp .rsvp-submit:disabled { opacity: .76; }
+.theme-rose .rsvp-privacy { color: #73525b; font-size: 15px; }
+
+
+.theme-rose .invitation-details-grid {
+  gap: clamp(12px, 4cqw, 50px);
+  max-width: 780px;
+  border: 0;
+  background: transparent;
+}
+.theme-rose .invitation-details-grid article {
+  min-height: 0;
+  padding: 22px 12px 25px;
+  border-block-start: 1px solid var(--rose-rule);
+  background: transparent;
+}
+.theme-rose .invitation-details-grid small { color: var(--rose-wine); }
+.theme-rose .invitation-details-grid strong { color: #4c2634; }
+.theme-rose .invitation-actions a {
+  min-height: 44px;
+  border: 1px solid #79364a;
+  border-radius: 999px;
+  background: var(--rose-velvet);
+  color: #fff6ee;
+  padding: 10px 18px;
+  font-size: 15px;
+}
+.theme-rose .invitation-actions .action-arrow { display: none; }
+
+
+
+
+.rose-flourish-welcome { width: clamp(100px,19cqw,265px); right: 2%; bottom: 13%; transform: scale(-1); }
+.rose-flourish-details { width: clamp(100px,17cqw,235px); right: 2%; bottom: 7%; transform: scale(-1); }
+.rose-flourish-closing {
+  width: min(20cqw, 276px, 21rem);
+  max-height: calc(100% - var(--rose-paper-edge) - 104px);
+  right: 3%;
+  bottom: 40px;
+  transform: rotate(8deg) scaleX(-1);
+}
+.tile-preview .rose-flourish { width: 28cqw; }
+@container (max-width: 560px) {
+
+
+
+
+  .rose-flourish-closing { right: 2%; bottom: 24px; }
+  .theme-rose .invitation-details-grid article { padding-block: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rose-flourish[data-blooming] .rose-sway {
+    transform-origin: 20px 245px;
+    animation: rose-sway 10s var(--rose-local-sway, var(--rose-sway-start)) ease-in-out infinite;
+  }
+  .rose-flourish[data-blooming] .rose-sway-corner { transform-origin: 15px 160px; }
+  .rose-flourish:nth-of-type(even)[data-blooming] .rose-sway { animation-direction: reverse; }
+}
+@keyframes rose-sway {
+  0%, 100% { rotate: 0deg; }
+  25% { rotate: 1.55deg; }
+  75% { rotate: -1.55deg; }
+}
+
+.rose-curtain.is-opening::before {
+  --rose-edge: inherit;
+  --rose-swell: inherit;
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .64;
+  background: radial-gradient(ellipse at 24% var(--rose-edge), #ffc8a73b, transparent 31%),
+    radial-gradient(ellipse at 76% calc(var(--rose-edge) - var(--rose-swell)), #df72982d, transparent 34%);
+}
+
+.theme-rose .countdown-section h3 { margin-bottom: 28px; }
+
+.rose-flourish-story { right: -3%; top: 2%; width: clamp(100px,22cqw,300px); transform: scaleX(-1) rotate(-12deg); }
+.rose-flourish-story-bloom { left: 7%; bottom: 4%; width: clamp(30px,6cqw,72px); }
+.theme-rose .invitation-story-grid { gap: clamp(13px, 2.4cqw, 30px); }
+.theme-rose .invitation-story-grid article {
+  isolation: isolate;
+  border: 1px solid #d9bf9b;
+  border-radius: 56px 8px 8px 8px;
+  padding: clamp(24px, 4cqw, 56px) clamp(18px, 2.4cqw, 30px) 24px;
+  background: linear-gradient(135deg, #fffefa, #fffcf5 62%, #f3e6d7);
+}
+.rose-flourish-story-marker {
+  width: 34px;
+  right: 12px;
+  top: 12px;
+}
+.theme-rose .invitation-story-grid small { padding-inline-end: 22px; color: #762e44; }
+.rose-detail-icon {
+  margin-bottom: 14px;
+  padding: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid #cfab76;
+  background: var(--rose-velvet);
+  color: #f2cf9d;
+}
+.theme-rose .invitation-details-grid article { border-block-start-color: #bc9260; }
+
+.theme-rose :is(#rsvp,.invitation-wishes) { position: relative; isolation: isolate; overflow: hidden; }
+.rose-flourish-rsvp-branch { left: -3%; top: 13%; width: clamp(105px,22cqw,310px); transform: rotate(15deg); }
+.rose-flourish-rsvp-bloom { right: 10%; bottom: 13%; width: clamp(34px,7cqw,90px); transform: rotate(-18deg); }
+.theme-rose .invitation-wishes {
+  --rose-paper-edge: clamp(19px, 4.3cqw, 56px);
+  color: #fff6ee;
+  background: var(--rose-velvet);
+  padding-block: clamp(62px, 8cqw, 120px);
+}
+.theme-rose .invitation-wishes :is(.rsvp-demo,.rsvp-privacy) { color: #f1d6c8; }
+.theme-rose .invitation-wishes :is(input:not([type=radio]),textarea) {
+  background: #fff8ee12;
+  border-color: #ddb784b5;
+  color: #fff6ee;
+}
+.theme-rose .invitation-wishes :is(input,textarea):focus-visible { outline-color: #f2cf9d; }
+.theme-rose .invitation-wishes .rsvp-submit {
+  background: #ecc89c;
+  border-color: #f6dcb6;
+  color: #421326;
+}
+.rose-flourish-wishes-branch { right: -3%; bottom: 12%; width: clamp(110px,23cqw,325px); transform: scale(-1) rotate(14deg); }
+.rose-flourish-wishes-bloom { left: 9%; top: 12%; width: clamp(40px,7cqw,86px); transform: rotate(23deg); }
+
+.invitation-site.theme-rose > .invitation-closing {
+  --rose-paper-edge: 56px;
+  --inv-ink: #4c2634;
+  --inv-accent: #87512e;
+  padding-top: clamp(100px, 10cqw, 150px);
+  background: var(--rose-paper);
+  color: var(--inv-ink);
+}
+.rose-flourish-closing-head { width: clamp(100px,23cqw,330px); left: -3%; top: 4%; transform: rotate(15deg); }
+.rose-flourish-closing-seal { width: 45px; top: 36px; left: calc(50% - 22px); }
+
+@container (max-width: 720px) {
+  .theme-rose .invitation-story-grid { grid-template-columns: 1fr; }
+  .rose-flourish-story { top: 3%; opacity: .7; }
+  .rose-flourish-story-bloom { display: none; }
+  .rose-flourish-rsvp-branch, .rose-flourish-wishes-branch { top: 1%; bottom: auto; width: 95px; }
+  .rose-flourish-wishes-branch { transform: scaleX(-1); }
+  .rose-flourish-rsvp-bloom, .rose-flourish-wishes-bloom { top: auto; bottom: 2%; }
+}
+
+.rose-cover-florals {
+  stroke: none;
+  overflow: visible;
+  filter: drop-shadow(0 3px 3px #21000c59);
+}
+.rose-cover-upper-left { width: clamp(195px, 38cqw, 580px); top: -1%; left: 0; }
+.rose-cover-upper-right { width: clamp(152px, 29cqw, 435px); top: 5%; right: 0; }
+.rose-cover-lower-left { width: clamp(175px, 28cqw, 410px); bottom: 7%; left: 0; }
+.rose-cover-lower-right { width: clamp(200px, 36cqw, 540px); bottom: 0; right: 0; }
+.rose-flourish {
+   --metal-deep: #260711;
+   --metal-shade: #58102c;
+   --metal-mid: #8d244b;
+   --metal-light: #bf456e;
+   --metal-peak: #ec91ad;
+ }
+.theme-rose :is(.invitation-cover,.invitation-welcome,.invitation-program,.invitation-wishes) .rose-flourish {
+   --metal-deep: #382014;
+   --metal-shade: #7b471d;
+   --metal-mid: #ae7738;
+   --metal-light: #e9be73;
+   --metal-peak: #fff5ce;
+ }
+.rose-metal-leaf > path[fill^="url"],
+.rose-metal-bloom > path[fill^="url"] {
+   stroke: var(--metal-shade);
+   stroke-width: .88;
+ }
+.rose-metal-leaf-vein,
+.rose-metal-petal-light,
+.rose-metal-petal-reflection {
+   fill: none;
+   stroke: var(--metal-peak);
+ }
+.rose-metal-leaf-vein { stroke-width: .78; opacity: .68; }
+.rose-metal-petal-light { stroke-width: 1.2; opacity: .85; }
+.rose-metal-petal-reflection { stroke-width: 2.2; opacity: .35; }
+.tile-preview .rose-cover-upper-left { width: 40cqw; }
+.tile-preview .rose-cover-lower-right { width: 38cqw; }
+@media (prefers-reduced-motion: no-preference) {
+  .rose-flourish[data-blooming] .rose-metal-leaf {
+    transform-origin: 0 0;
+    animation: rose-open-bloom 2.2s cubic-bezier(.25,.65,.3,1) both;
+  }
+}
+
+/* Bring each desktop ornament to the edge of its section's reading area. */
+@container (min-width: 1050px) {
+  .rose-flourish-photo,
+  .rose-flourish-story,
+  .rose-flourish-story-bloom { --reading-half: 500px; }
+  .rose-flourish-details { --reading-half: 390px; }
+  .rose-flourish-program { --reading-half: 425px; }
+  .rose-flourish-closing,
+  .rose-flourish-closing-head,
+  .rose-flourish-welcome { --reading-half: 330px; }
+
+  .rose-flourish-rsvp-branch,
+  .rose-flourish-wishes-branch { --reading-half: 295px; }
+
+  .rose-flourish-photo,
+  .rose-flourish-story,
+  .rose-flourish-details,
+  .rose-flourish-program,
+  .rose-flourish-closing,
+  .rose-flourish-closing-head,
+  .rose-flourish-welcome,
+
+  .rose-flourish-rsvp-branch,
+  .rose-flourish-wishes-branch {
+    --branch-size: clamp(92px, calc(50cqw - var(--reading-half) - 22px), 215px);
+    --branch-inset: max(0px, calc(50% - var(--reading-half) - var(--branch-size) - 18px));
+    width: var(--branch-size);
+  }
+
+  .rose-flourish-photo,
+  .rose-flourish-program,
+  .rose-flourish-closing-head,
+
+  .rose-flourish-rsvp-branch { left: var(--branch-inset); }
+  .rose-flourish-story,
+  .rose-flourish-details,
+  .rose-flourish-closing,
+  .rose-flourish-welcome,
+  .rose-flourish-wishes-branch { right: var(--branch-inset); }
+
+  .rose-flourish-photo { bottom: 15%; }
+  .rose-flourish-story { top: 5%; }
+  .rose-flourish-story-bloom { left: max(2%, calc(50% - var(--reading-half) - 98px)); bottom: 10%; }
+  .rose-flourish-details { bottom: 20%; }
+  .rose-flourish-program { bottom: 18%; transform: rotate(-4deg); }
+  .rose-flourish-program-head { right: max(6%, calc(50% - 385px)); top: 12%; }
+  .rose-flourish-closing { bottom: 12%; }
+  .rose-flourish-closing-head { top: 19%; }
+  .rose-flourish-welcome { bottom: 18%; }
+  .rose-flourish-rsvp-branch { top: 20%; }
+  .rose-flourish-rsvp-bloom { right: max(4%, calc(50% - 408px)); bottom: 21%; }
+  .rose-flourish-wishes-branch { bottom: 19%; }
+  .rose-flourish-wishes-bloom { left: max(4%, calc(50% - 390px)); top: 19%; }
+
+  .rose-cover-upper-left { width: clamp(410px, 43cqw, 710px); }
+  .rose-cover-upper-right { width: clamp(340px, 36cqw, 600px); }
+  .rose-cover-lower-left { width: clamp(310px, 36cqw, 625px); }
+  .rose-cover-lower-right { width: clamp(390px, 43cqw, 700px); }
+}
+
+@container (max-width: 720px) {
+  .rose-flourish-program-head { width: 34px; right: 8%; top: 5%; }
+  .rose-flourish-program { width: 84px; bottom: 24px; left: 0; }
+  .invitation-site.theme-rose > .invitation-program { padding-bottom: max(80px, 19cqw); }
+  .rose-flourish-photo, .rose-flourish-details { width: 100px; }
+  .rose-flourish-closing-head, .rose-flourish-closing { width: 94px; }
+  .rose-flourish-welcome { width: 105px; bottom: 7%; }
+}
+
+/* Each section clips the root where its stem enters from the neighboring block. */
+.theme-rose .rose-flourish[data-rose-branch] {
+  --rose-twig-step: .18s;
+  top: auto;
+  bottom: -1px;
+  transform: none;
+  opacity: 1;
+}
+.theme-rose :is(.rose-flourish-welcome,.rose-flourish-details,.rose-flourish-story,.rose-flourish-closing,.rose-flourish-wishes-branch)[data-rose-branch] {
+  transform: scaleX(-1);
+}
+.theme-rose .rose-flourish-closing[data-rose-branch] {
+  max-height: min(53%, 370px);
+}
+.theme-rose .rose-flourish-story[data-rose-branch] { width: clamp(105px, 16cqw, 215px); }
+.theme-rose .rose-flourish-photo[data-rose-branch] { width: clamp(100px, 16cqw, 180px); }
+.rose-cover-florals .rose-flourish-stem { stroke-width: 2.05; }
+.rose-cover-florals .rose-flourish-twig { stroke-width: 1.2; }
+.rose-cover-florals {
+  --rose-leaf-step: .095s;
+  --rose-bloom-step: .19s;
+  --rose-twig-step: .14s;
+  --rose-sway-start: 8.5s;
+}
+@container (max-width: 720px) {
+  .theme-rose .rose-flourish-story[data-rose-branch] { width: 78px; }
+}
+
+.theme-rose .countdown-section .invitation-countdown {
+  max-width: 560px;
+  color: #6c2339;
+}
+.theme-rose .countdown-section .invitation-countdown > div {
+  border: 0;
+  gap: 8px;
+}
+.theme-rose .countdown-section .invitation-countdown dd {
+  font-size: clamp(28px, 7.4cqw, 57px);
+  line-height: 1;
+}
+.theme-rose .countdown-section .invitation-countdown dt {
+  font-size: clamp(12px, 2.7cqw, 15px);
+  letter-spacing: 0;
+}
